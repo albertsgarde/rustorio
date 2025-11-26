@@ -52,6 +52,19 @@ impl Tick {
         self.advance_by(tick - self.tick);
     }
 
+    /// Advances the game until the specified condition is met.
+    ///
+    /// By default prints the current tick number to the console.
+    /// If you want to disable this, use the [`log`](Tick::log) method.
+    pub fn wait_until<F>(&mut self, mut condition: F)
+    where
+        F: FnMut(&Tick) -> bool,
+    {
+        while !condition(self) {
+            self.next();
+        }
+    }
+
     /// Returns the current tick number.
     pub fn cur(&self) -> u64 {
         self.tick
