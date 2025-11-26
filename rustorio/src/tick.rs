@@ -22,13 +22,34 @@ impl Tick {
     }
 
     /// Advances the game by one tick.
+    ///
     /// By default prints the current tick number to the console.
     /// If you want to disable this, use the [`log`](Tick::log) method.
     pub fn next(&mut self) {
+        self.advance_by(1);
+    }
+
+    /// Advances the game by a specified number of ticks.
+    ///
+    /// By default prints the current tick number to the console.
+    /// If you want to disable this, use the [`log`](Tick::log) method.
+    pub fn advance_by(&mut self, adv: u64) {
         if self.log {
-            println!("Tick: {}", self.tick);
+            println!("{self}");
         }
-        self.tick = self.tick.checked_add(1).expect("Tick overflow. Well done you've found an exploit. Or you would have if `https://github.com/albertsgarde/rustorio/issues/3` hadn't beaten you to it!");
+        self.tick = self.tick.checked_add(adv).expect("Tick overflow");
+    }
+
+    /// Advances the game until the specified tick number.
+    ///
+    /// By default prints the current tick number to the console.
+    /// If you want to disable this, use the [`log`](Tick::log) method.
+    pub fn advance_until(&mut self, tick: u64) {
+        if tick < self.tick {
+          eprintln!("Warning: Attempting to advance to a tick ({tick}) earlier than the current tick ({}). This will result in no change.", self.tick);
+          return;
+        }
+        self.advance_by(tick - self.tick);
     }
 
     /// Returns the current tick number.
