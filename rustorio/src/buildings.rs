@@ -7,7 +7,10 @@
 //! When created, a building is set to a specific [`Recipe`](crate::recipes), which defines the inputs and outputs.
 //! This can be changed using the `change_recipe` method, but only if the building is empty (no inputs or outputs).
 
-use rustorio_engine::{machine::Machine, recipe::Recipe};
+use rustorio_engine::{
+    machine::{Machine, MachineNotEmptyError},
+    recipe::Recipe,
+};
 
 use crate::{
     Bundle, Tick,
@@ -42,10 +45,10 @@ impl<R: AssemblerRecipe> Assembler<R> {
     pub fn change_recipe<R2: AssemblerRecipe>(
         self,
         recipe: R2,
-    ) -> Result<Assembler<R2>, Assembler<R>> {
+    ) -> Result<Assembler<R2>, MachineNotEmptyError<Self>> {
         match self.0.change_recipe(recipe) {
             Ok(machine) => Ok(Assembler(machine)),
-            Err(machine) => Err(Assembler(machine)),
+            Err(err) => Err(err.map_machine(|machine| Assembler(machine))),
         }
     }
 
@@ -79,10 +82,13 @@ impl<R: FurnaceRecipe> Furnace<R> {
 
     /// Changes the [`Recipe`](crate::recipes) of the furnace.
     /// Returns the original furnace if the furnace has no inputs or outputs.
-    pub fn change_recipe<R2: FurnaceRecipe>(self, recipe: R2) -> Result<Furnace<R2>, Furnace<R>> {
+    pub fn change_recipe<R2: FurnaceRecipe>(
+        self,
+        recipe: R2,
+    ) -> Result<Furnace<R2>, MachineNotEmptyError<Self>> {
         match self.0.change_recipe(recipe) {
             Ok(machine) => Ok(Furnace(machine)),
-            Err(machine) => Err(Furnace(machine)),
+            Err(err) => Err(err.map_machine(|machine| Furnace(machine))),
         }
     }
 
