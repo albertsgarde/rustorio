@@ -15,6 +15,8 @@ fn main() {
 fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bundle<Point, 10>) {
     let StartingResources {
         iron,
+        iron_territory,
+        copper_territory,
         points_technology,
     } = starting_resources;
 

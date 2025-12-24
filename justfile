@@ -2,8 +2,10 @@ fmt:
     cargo fmt
 
 # If you don't have nextest installed, you can get it via `cargo install cargo-nextest`
-test:
-    cargo nextest r
+test *ARGS:
+    cargo nextest r {{ARGS}}
+
+alias t := test
 
 check STRICT="":
     cargo clippy --all --all-targets {{ if STRICT != "" { "-- -D warnings" } else { "" } }}

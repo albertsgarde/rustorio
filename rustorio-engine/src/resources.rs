@@ -229,6 +229,10 @@ pub fn bundle<Content: ResourceType, const AMOUNT: u32>() -> Bundle<Content, AMO
     Bundle::new()
 }
 
+pub struct Assert<const OK: bool>;
+pub trait IsTrue {}
+impl IsTrue for Assert<true> {}
+
 impl<Content: ResourceType, const AMOUNT: u32> Bundle<Content, AMOUNT> {
     /// The fixed amount of resource contained in this [`Bundle`].
     pub const AMOUNT: u32 = AMOUNT;
@@ -248,9 +252,7 @@ impl<Content: ResourceType, const AMOUNT: u32> Bundle<Content, AMOUNT> {
         self,
     ) -> (Bundle<Content, AMOUNT1>, Bundle<Content, AMOUNT2>)
     where
-        // Enforce that AMOUNT1 + AMOUNT2 == AMOUNT at compile time
-        [(); AMOUNT as usize - (AMOUNT1 as usize + AMOUNT2 as usize)]:,
-        [(); (AMOUNT1 as usize + AMOUNT2 as usize) - AMOUNT as usize]:,
+        Assert<{ AMOUNT1 + AMOUNT2 == AMOUNT }>: IsTrue,
     {
         (Bundle::new(), Bundle::new())
     }

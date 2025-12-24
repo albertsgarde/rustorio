@@ -34,7 +34,7 @@ pub fn play<G: GameMode>(main: fn(Tick, G::StartingResources) -> (Tick, G::Victo
         );
     }
     let tick = Tick::start();
-    let start_resources = G::StartingResources::init();
+    let start_resources = G::StartingResources::init(&tick);
     let (tick, _points) = main(tick, start_resources);
     println!("You won in {} ticks!", tick.cur());
     std::process::exit(0);

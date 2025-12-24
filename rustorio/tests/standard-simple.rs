@@ -3,6 +3,7 @@ use rustorio::{
     buildings::{Assembler, Furnace},
     gamemodes::Standard,
     recipes::{CopperSmelting, IronSmelting, RedScienceRecipe},
+    territory::Miner,
 };
 
 type GameMode = Standard;
@@ -20,34 +21,67 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Vi
 
     let StartingResources {
         iron,
+        mut iron_territory,
+        mut copper_territory,
         points_technology,
     } = starting_resources;
 
-    let mut furnace = Furnace::build(&tick, IronSmelting, iron);
+    let mut iron_furnace = Furnace::build(&tick, IronSmelting, iron);
 
-    let iron_ore = rustorio::mine_iron::<500>(&mut tick);
+    let iron_ore = iron_territory.hand_mine::<40>(&mut tick);
 
-    furnace.inputs(&tick).0.add(iron_ore.to_resource());
+    iron_furnace.inputs(&tick).0.add(iron_ore.to_resource());
+    tick.advance_until(|tick| iron_furnace.outputs(tick).0.amount() >= 20, 1000);
+    iron_territory
+        .add_miner(
+            &tick,
+            Miner::build(iron_furnace.outputs(&tick).0.bundle().unwrap()),
+        )
+        .unwrap();
+    copper_territory
+        .add_miner(
+            &tick,
+            Miner::build(iron_furnace.outputs(&tick).0.bundle().unwrap()),
+        )
+        .unwrap();
 
-    let mut copper_ore = rustorio::Resource::new_empty();
-    while furnace.inputs(&tick).0.amount() > 0 {
-        copper_ore += rustorio::mine_copper::<1>(&mut tick);
-    }
+    tick.advance_until(
+        |tick| {
+            iron_furnace
+                .inputs(tick)
+                .0
+                .add(iron_territory.resources(tick).empty());
+            iron_furnace.outputs(tick).0.amount() >= 10
+        },
+        100000,
+    );
 
-    println!("Copper ore mined: {}", copper_ore.amount());
+    let mut copper_furnace = Furnace::build(
+        &tick,
+        CopperSmelting,
+        iron_furnace.outputs(&tick).0.bundle().unwrap(),
+    );
 
-    let mut iron = furnace.outputs(&tick).0.empty();
+    tick.advance_until(
+        |tick| {
+            iron_furnace
+                .inputs(tick)
+                .0
+                .add(iron_territory.resources(tick).empty());
+            copper_furnace
+                .inputs(tick)
+                .0
+                .add(copper_territory.resources(tick).empty());
+            iron_furnace.outputs(tick).0.amount() >= 500
+                && copper_furnace.outputs(tick).0.amount() >= 500
+        },
+        100000,
+    );
+
+    let mut iron = iron_furnace.outputs(&tick).0.empty();
     println!("Iron ingots produced: {}", iron.amount());
 
-    let mut furnace = furnace.change_recipe(CopperSmelting).unwrap();
-
-    furnace
-        .inputs(&tick)
-        .0
-        .add(copper_ore.bundle::<200>().unwrap());
-    tick.advance_until(|tick| furnace.inputs(tick).0.amount() == 0, u64::MAX);
-
-    let mut copper = furnace.outputs(&tick).0.empty();
+    let mut copper = copper_furnace.outputs(&tick).0.empty();
     println!("Copper ingots produced: {}", copper.amount());
 
     let mut assembler = Assembler::build(
