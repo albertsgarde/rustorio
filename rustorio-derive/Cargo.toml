@@ -1,13 +1,13 @@
 [package]
 name = "rustorio-derive"
-version = "0.0.5"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
 description = """The first game written and played entirely in Rust's type system. Not just do you play by
 writing Rust code, the rules of the game are enforced by the Rust compiler! If
 you can write the program so it compiles and doesn't panic, you win!"""
-license = "MIT OR Apache-2.0"
 readme = "../README.md"
-repository = "https://github.com/albertsgarde/rustorio"
 documentation = "https://docs.rs/rustorio-derive"
 
 [lib]
