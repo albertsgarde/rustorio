@@ -49,18 +49,18 @@ impl<R: RecipeEx> Machine<R> {
         &mut self.outputs
     }
 
-    fn iter_inputs(&mut self) -> impl Iterator<Item = (u32, &mut u32)> {
+    fn iter_inputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
         R::iter_inputs(&mut self.inputs)
     }
 
-    fn iter_outputs(&mut self) -> impl Iterator<Item = (u32, &mut u32)> {
+    fn iter_outputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
         R::iter_outputs(&mut self.outputs)
     }
 
     /// Changes the [`Recipe`](crate::recipe) of the machine.
     /// Returns the original machine if the machine has any inputs or outputs.
     pub fn change_recipe<R2: RecipeEx>(mut self, recipe: R2) -> Result<Machine<R2>, Self> {
-        fn nonempty((_, current): (u32, &mut u32)) -> bool {
+        fn nonempty((_, _, current): (&'static str, u32, &mut u32)) -> bool {
             *current > 0
         }
 
@@ -79,22 +79,22 @@ impl<R: RecipeEx> Machine<R> {
         let crafting_time = self.crafting_time;
         let count = self
             .iter_inputs()
-            .map(|(needed, current)| *current / needed)
+            .map(|(_, needed, current)| *current / needed)
             .chain((R::TIME > 0).then(|| (crafting_time / R::TIME).try_into().unwrap()))
             .min()
             .unwrap();
 
-        for (needed, current) in self.iter_inputs() {
+        for (_, needed, current) in self.iter_inputs() {
             *current -= count * needed;
         }
-        for (needed, current) in self.iter_outputs() {
+        for (_, needed, current) in self.iter_outputs() {
             *current += count * needed;
         }
         self.crafting_time -= u64::from(count) * R::TIME;
 
         if self
             .iter_inputs()
-            .any(|(needed, current)| *current < needed)
+            .any(|(_, needed, current)| *current < needed)
         {
             self.crafting_time = 0;
         }

@@ -110,8 +110,11 @@ pub trait RecipeEx: Recipe {
     fn new_outputs() -> Self::Outputs;
 
     /// Iterator helper over `Self::Inputs`.
-    fn iter_inputs(items: &mut Self::Inputs) -> impl Iterator<Item = (u32, &mut u32)>;
+    fn iter_inputs(items: &mut Self::Inputs)
+    -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
 
     /// Iterator helper over `Self::Outputs`.
-    fn iter_outputs(items: &mut Self::Outputs) -> impl Iterator<Item = (u32, &mut u32)>;
+    fn iter_outputs(
+        items: &mut Self::Outputs,
+    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
 }
