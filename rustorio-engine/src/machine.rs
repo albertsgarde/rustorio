@@ -111,24 +111,19 @@ impl<R: RecipeEx> Machine<R> {
         recipe: R2,
     ) -> Result<Machine<R2>, MachineNotEmptyError<Self>> {
         let _ = recipe;
-        fn nonempty(
-            (resource_name, _needed, current): (&'static str, u32, &mut u32),
-        ) -> Option<(&'static str, u32)> {
-            let &mut current = current;
-            if current > 0 {
-                Some((resource_name, current))
-            } else {
-                None
-            }
+        fn find_nonempty<'a>(
+            mut iter: impl Iterator<Item = (&'static str, u32, &'a mut u32)>,
+            location: BufferLocation,
+        ) -> Option<(&'static str, u32, BufferLocation)> {
+            iter.find_map(|(resource_name, _needed, &mut current)| {
+                (current > 0).then_some((resource_name, current, location))
+            })
         }
-        let failure = if let Some((resource_type, amount)) = self.iter_inputs().find_map(nonempty) {
-            Some((resource_type, amount, BufferLocation::Input))
-        } else if let Some((resource_type, amount)) = self.iter_outputs().find_map(nonempty) {
-            Some((resource_type, amount, BufferLocation::Output))
-        } else {
-            None
-        };
-        if let Some((resource_type, amount, location)) = failure {
+
+        if let Some((resource_type, amount, location)) =
+            find_nonempty(self.iter_inputs(), BufferLocation::Input)
+                .or_else(|| find_nonempty(self.iter_outputs(), BufferLocation::Output))
+        {
             Err(MachineNotEmptyError {
                 machine: self,
                 resource_type,

@@ -48,7 +48,7 @@ impl<R: AssemblerRecipe> Assembler<R> {
     ) -> Result<Assembler<R2>, MachineNotEmptyError<Self>> {
         match self.0.change_recipe(recipe) {
             Ok(machine) => Ok(Assembler(machine)),
-            Err(err) => Err(err.map_machine(|machine| Assembler(machine))),
+            Err(err) => Err(err.map_machine(Assembler)),
         }
     }
 
@@ -88,7 +88,7 @@ impl<R: FurnaceRecipe> Furnace<R> {
     ) -> Result<Furnace<R2>, MachineNotEmptyError<Self>> {
         match self.0.change_recipe(recipe) {
             Ok(machine) => Ok(Furnace(machine)),
-            Err(err) => Err(err.map_machine(|machine| Furnace(machine))),
+            Err(err) => Err(err.map_machine(Furnace)),
         }
     }
 

@@ -116,15 +116,11 @@ fn derive_recipe_ex_oneway(
         .map(|_| quote! {::rustorio_engine::recipe::RecipeItem::default()});
 
     let iter_fn_ident = Ident::new(iter_fn_name, Span::call_site());
-    let iter_values = (0..per_type.len())
-        .zip(per_type.iter())
+    let iter_values = per_type
+        .iter()
+        .enumerate()
         .map(|(i, (_amount, resource_type))| {
-            (
-                LitInt::new(&i.to_string(), Span::call_site()),
-                resource_type,
-            )
-        })
-        .map(|(i, resource_type)| {
+            let i = LitInt::new(&i.to_string(), Span::call_site());
             quote! {(
                 <#resource_type as ::rustorio_engine::ResourceType>::NAME,
                 Self::#amount_const_ident.#i,
