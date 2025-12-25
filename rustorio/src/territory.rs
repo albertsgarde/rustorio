@@ -15,7 +15,7 @@ use crate::resources::Iron;
 /// Ore is mined every MINING_TICK_LENGTH ticks by each miner in a territory.
 pub const MINING_TICK_LENGTH: u64 = 2;
 
-fn tick_to_mining_tick(tick: u64) -> u64 {
+const fn tick_to_mining_tick(tick: u64) -> u64 {
     tick / MINING_TICK_LENGTH
 }
 
@@ -26,7 +26,7 @@ pub struct Miner;
 
 impl Miner {
     /// Builds a new miner. Requires 10 iron to build.
-    pub fn build(iron: Bundle<Iron, 10>) -> Self {
+    pub const fn build(iron: Bundle<Iron, 10>) -> Self {
         let _ = iron;
         Miner
     }
@@ -64,7 +64,7 @@ pub struct Territory<OreType: ResourceType> {
 
 impl<OreType: ResourceType> Territory<OreType> {
     /// Creates a new territory that can hold up to `max_miners` miners.
-    pub(crate) fn new(tick: &Tick, max_miners: u32) -> Self {
+    pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
         Self {
             mining_tick: tick_to_mining_tick(tick.cur()),
             max_miners,
@@ -74,12 +74,12 @@ impl<OreType: ResourceType> Territory<OreType> {
     }
 
     /// Returns the the number of miner slots available in the territory.
-    pub fn max_miners(&self) -> u32 {
+    pub const fn max_miners(&self) -> u32 {
         self.max_miners
     }
 
     /// Returns the current number of miners in the territory.
-    pub fn num_miners(&self) -> u32 {
+    pub const fn num_miners(&self) -> u32 {
         self.miners
     }
 

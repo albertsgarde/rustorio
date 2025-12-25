@@ -13,12 +13,12 @@ pub struct Tick {
 }
 
 impl Tick {
-    pub(crate) fn start() -> Self {
+    pub(crate) const fn start() -> Self {
         Self { tick: 0, log: true }
     }
 
     /// Sets whether or not to log on tick advancement.
-    pub fn log(&mut self, log: bool) {
+    pub const fn log(&mut self, log: bool) {
         self.log = log;
     }
 
@@ -69,7 +69,7 @@ impl Tick {
     }
 
     /// Returns the current tick number.
-    pub fn cur(&self) -> u64 {
+    pub const fn cur(&self) -> u64 {
         self.tick
     }
 }

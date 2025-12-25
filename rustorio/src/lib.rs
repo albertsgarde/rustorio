@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![warn(clippy::missing_const_for_fn)]
 //! The base mod for Rustorio.
 //! Contains all the main content of the game.
 //! Your saves should depend on this crate.

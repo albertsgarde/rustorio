@@ -15,6 +15,10 @@ check STRICT="":
 doc *FLAGS:
     cargo doc -p rustorio -p rustorio-engine -p rustorio-derive --no-deps {{ FLAGS }}
 
+create-remote-branch BRANCH:
+    jj bookmark create {{BRANCH}} -r @-
+    jj git push -b make-all-const --allow-new --remote origin
+
 push BRANCH:
     jj bookmark move {{BRANCH}} --to=@-
     jj git push

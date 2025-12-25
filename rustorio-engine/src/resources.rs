@@ -58,7 +58,7 @@ pub struct InsufficientResourceError<Resource: ResourceType> {
 
 impl<Resource: ResourceType> InsufficientResourceError<Resource> {
     /// Creates a new `InsufficientResourceError`.
-    pub fn new(requested_amount: u32, available_amount: u32) -> Self {
+    pub const fn new(requested_amount: u32, available_amount: u32) -> Self {
         Self {
             requested_amount,
             available_amount,
@@ -90,20 +90,20 @@ pub struct Resource<Content: ResourceType> {
 
 /// Creates a new [`Resource`] with the specified amount.
 /// Should not be reexported in mods.
-pub fn resource<Content: ResourceType>(amount: u32) -> Resource<Content> {
+pub const fn resource<Content: ResourceType>(amount: u32) -> Resource<Content> {
     Resource::new(amount)
 }
 
 impl<Content: ResourceType> Resource<Content> {
     /// Creates a new empty [`Resource`].
-    pub fn new_empty() -> Self {
+    pub const fn new_empty() -> Self {
         Self {
             amount: 0,
             phantom: PhantomData,
         }
     }
 
-    pub(crate) fn new(amount: u32) -> Self {
+    pub(crate) const fn new(amount: u32) -> Self {
         Self {
             amount,
             phantom: PhantomData,
@@ -111,13 +111,13 @@ impl<Content: ResourceType> Resource<Content> {
     }
 
     /// The current amount of the resource contained in this [`Resource`].
-    pub fn amount(&self) -> u32 {
+    pub const fn amount(&self) -> u32 {
         self.amount
     }
 
     /// Splits the [`Resource`] into two smaller parts.
     /// If there are insufficient resources in the [`Resource`], it returns an error with the original resource.
-    pub fn split(self, amount: u32) -> Result<(Self, Self), Self> {
+    pub const fn split(self, amount: u32) -> Result<(Self, Self), Self> {
         if let Some(remaining) = self.amount.checked_sub(amount) {
             Ok((Self::new(remaining), Self::new(amount)))
         } else {
@@ -127,7 +127,10 @@ impl<Content: ResourceType> Resource<Content> {
 
     /// Removes a specified amount of resources from this [`Resource`] and returns them as a new [`Resource`].
     /// If there are insufficient resources in the [`Resource`], it returns `None`.
-    pub fn split_off(&mut self, amount: u32) -> Result<Self, InsufficientResourceError<Content>> {
+    pub const fn split_off(
+        &mut self,
+        amount: u32,
+    ) -> Result<Self, InsufficientResourceError<Content>> {
         if let Some(remaining) = self.amount.checked_sub(amount) {
             self.amount = remaining;
             Ok(Resource::new(amount))
@@ -137,14 +140,14 @@ impl<Content: ResourceType> Resource<Content> {
     }
 
     /// Empties this [`Resource`], returning all contained resources as a new [`Resource`].
-    pub fn empty(&mut self) -> Self {
+    pub const fn empty(&mut self) -> Self {
         let amount = self.amount;
         self.amount = 0;
         Resource::new(amount)
     }
 
     /// Empties this [`Resource`] into another [`Resource`], transferring all contained resources.
-    pub fn empty_into(&mut self, other: &mut Self) {
+    pub const fn empty_into(&mut self, other: &mut Self) {
         other.amount += self.amount;
         self.amount = 0;
     }
@@ -155,12 +158,12 @@ impl<Content: ResourceType> Resource<Content> {
     }
 
     /// Consumes a [`Bundle`] of the same resource type and adds the contained resources to this [`Resource`].
-    pub fn add_bundle<const AMOUNT: u32>(&mut self, bundle: Bundle<Content, AMOUNT>) {
+    pub const fn add_bundle<const AMOUNT: u32>(&mut self, bundle: Bundle<Content, AMOUNT>) {
         self.amount += bundle.amount();
     }
 
     /// Takes a specified amount of resources from this [`Resource`] and puts it into a [`Bundle`].
-    pub fn bundle<const AMOUNT: u32>(
+    pub const fn bundle<const AMOUNT: u32>(
         &mut self,
     ) -> Result<Bundle<Content, AMOUNT>, InsufficientResourceError<Content>> {
         if let Some(remaining) = self.amount.checked_sub(AMOUNT) {
@@ -237,18 +240,18 @@ impl<Content: ResourceType, const AMOUNT: u32> Bundle<Content, AMOUNT> {
     /// The fixed amount of resource contained in this [`Bundle`].
     pub const AMOUNT: u32 = AMOUNT;
 
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self { dummy: PhantomData }
     }
 
     /// Returns the fixed amount of resource contained in this [`Bundle`].
-    pub fn amount(&self) -> u32 {
+    pub const fn amount(&self) -> u32 {
         AMOUNT
     }
 
     /// Splits this [`Bundle`] into two smaller [`Bundle`]s with the specified amounts.
     /// The sum of `AMOUNT1` and `AMOUNT2` must equal the amount of this [`Bundle`].
-    pub fn split<const AMOUNT1: u32, const AMOUNT2: u32>(
+    pub const fn split<const AMOUNT1: u32, const AMOUNT2: u32>(
         self,
     ) -> (Bundle<Content, AMOUNT1>, Bundle<Content, AMOUNT2>)
     where
@@ -258,7 +261,7 @@ impl<Content: ResourceType, const AMOUNT: u32> Bundle<Content, AMOUNT> {
     }
 
     /// Converts this [`Bundle`] into a [`Resource`] with the same resource type and amount.
-    pub fn to_resource(self) -> Resource<Content> {
+    pub const fn to_resource(self) -> Resource<Content> {
         Resource::new(AMOUNT)
     }
 }
