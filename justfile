@@ -16,10 +16,12 @@ doc *FLAGS:
     cargo doc -p rustorio -p rustorio-engine -p rustorio-derive --no-deps {{ FLAGS }}
 
 create-remote-branch BRANCH:
+    jj git fetch
     jj bookmark create {{BRANCH}} -r @-
     jj git push -b {{BRANCH}} --allow-new --remote origin
 
 push BRANCH:
+    jj git fetch
     jj bookmark move {{BRANCH}} --to=@-
     jj git push
 
