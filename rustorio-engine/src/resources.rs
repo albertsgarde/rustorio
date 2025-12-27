@@ -232,7 +232,9 @@ pub fn bundle<Content: ResourceType, const AMOUNT: u32>() -> Bundle<Content, AMO
     Bundle::new()
 }
 
+/// A compile-time assertion that a condition is true.
 pub struct Assert<const OK: bool>;
+/// A trait implemented only for `Assert<true>`.
 pub trait IsTrue {}
 impl IsTrue for Assert<true> {}
 
