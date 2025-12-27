@@ -2,7 +2,7 @@ use proc_macro_crate::FoundCrate;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Attribute, DeriveInput, Ident, LitInt, Token, Type, parenthesized,
+    Attribute, DeriveInput, Generics, Ident, LitInt, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
@@ -47,13 +47,13 @@ impl Parse for RecipeItemsAttr {
     }
 }
 
-struct DeriveRecipeOneway {
-    per_type: Vec<(u32, Type)>,
+struct RecipeItemList {
+    item_list: Vec<(u32, Type)>,
     item_type_ident: Ident,
     amount_const_ident: Ident,
 }
 
-impl DeriveRecipeOneway {
+impl RecipeItemList {
     fn new(
         attr: &Attribute,
         attr_name: &str,
@@ -78,7 +78,7 @@ impl DeriveRecipeOneway {
         let amount_const_ident = Ident::new(amount_const_name, Span::call_site());
 
         Self {
-            per_type,
+            item_list: per_type,
             item_type_ident,
             amount_const_ident,
         }
@@ -93,18 +93,92 @@ impl DeriveRecipeOneway {
     }
 }
 
-fn derive_recipe_oneway(oneway: &DeriveRecipeOneway, amount_type_name: &str) -> TokenStream {
-    let DeriveRecipeOneway {
-        per_type,
+struct RecipeDetails {
+    name: Ident,
+    generics: Generics,
+
+    inputs: RecipeItemList,
+    outputs: RecipeItemList,
+    ticks: LitInt,
+}
+
+impl RecipeDetails {
+    fn from_input(input: DeriveInput) -> Self {
+        let mut inputs = None;
+        let mut outputs = None;
+        let mut ticks = None;
+        for attr in &input.attrs {
+            if attr.path().is_ident("recipe_inputs") {
+                inputs = Some(RecipeItemList::new_inputs(attr));
+            } else if attr.path().is_ident("recipe_outputs") {
+                outputs = Some(RecipeItemList::new_outputs(attr));
+            } else if attr.path().is_ident("recipe_ticks") {
+                ticks = Some(
+                    attr.parse_args::<LitInt>()
+                        .expect("Invalid \"recipe_ticks\" value"),
+                );
+            }
+        }
+        let inputs = inputs.expect("Missing \"recipe_inputs\" attribute");
+        let outputs = outputs.expect("Missing \"recipe_outputs\" attribute");
+        let ticks = ticks.expect("Missing \"recipe_ticks\" attribute");
+
+        Self {
+            name: input.ident,
+            generics: input.generics,
+            inputs,
+            outputs,
+            ticks,
+        }
+    }
+
+    fn recipe_impl(&self) -> TokenStream {
+        let inputs_stream = generate_recipe_direction(&self.inputs, "InputAmountsType");
+        let outputs_stream = generate_recipe_direction(&self.outputs, "OutputAmountsType");
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+
+        let name = &self.name;
+        let ticks = &self.ticks;
+        quote! {
+            impl #impl_generics #Crate::recipe::Recipe for #name #ty_generics #where_clause {
+                const TIME: u64 = #ticks;
+
+                #inputs_stream
+                #outputs_stream
+            }
+        }
+    }
+
+    fn recipe_ex_impl(&self) -> TokenStream {
+        let inputs_stream = generate_recipe_ex_direction(&self.inputs, "new_inputs", "iter_inputs");
+        let outputs_stream =
+            generate_recipe_ex_direction(&self.outputs, "new_outputs", "iter_outputs");
+        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
+        let name = &self.name;
+        quote! {
+            impl #impl_generics #Crate::recipe::RecipeEx for #name #ty_generics #where_clause {
+                #inputs_stream
+                #outputs_stream
+            }
+        }
+    }
+}
+
+fn generate_recipe_direction(
+    recipe_item_list: &RecipeItemList,
+    amount_type_name: &str,
+) -> TokenStream {
+    let RecipeItemList {
+        item_list,
         item_type_ident,
         amount_const_ident,
-    } = oneway;
+    } = recipe_item_list;
 
     let amount_type_ident = Ident::new(amount_type_name, Span::call_site());
-    let amount_types = per_type.iter().map(|_| quote! {u32}).collect::<Vec<_>>();
-    let amounts = per_type.iter().map(|(amount, _)| amount);
+    let amount_types = item_list.iter().map(|_| quote! {u32}).collect::<Vec<_>>();
+    let amounts = item_list.iter().map(|(amount, _)| amount);
 
-    let recipe_items = per_type
+    let recipe_items = item_list
         .iter()
         .map(|(amount, ty)| quote! {#Crate::recipe::RecipeItem<#amount, #ty>});
 
@@ -116,24 +190,24 @@ fn derive_recipe_oneway(oneway: &DeriveRecipeOneway, amount_type_name: &str) -> 
     }
 }
 
-fn derive_recipe_ex_oneway(
-    oneway: &DeriveRecipeOneway,
+fn generate_recipe_ex_direction(
+    recipe_item_list: &RecipeItemList,
     new_fn_name: &str,
     iter_fn_name: &str,
 ) -> TokenStream {
-    let DeriveRecipeOneway {
-        per_type,
+    let RecipeItemList {
+        item_list,
         item_type_ident,
         amount_const_ident,
-    } = oneway;
+    } = recipe_item_list;
 
     let new_fn_ident = Ident::new(new_fn_name, Span::call_site());
-    let new_values = per_type
+    let new_values = item_list
         .iter()
         .map(|_| quote! {#Crate::recipe::RecipeItem::default()});
 
     let iter_fn_ident = Ident::new(iter_fn_name, Span::call_site());
-    let iter_values = per_type
+    let iter_values = item_list
         .iter()
         .enumerate()
         .map(|(i, (_amount, resource_type))| {
@@ -157,85 +231,19 @@ fn derive_recipe_ex_oneway(
         }
     }
 }
-fn derive_recipe_inner(input: DeriveInput) -> TokenStream {
-    let mut inputs = None;
-    let mut outputs = None;
-    let mut ticks = None;
-    for attr in &input.attrs {
-        if attr.path().is_ident("recipe_inputs") {
-            inputs = Some(derive_recipe_oneway(
-                &DeriveRecipeOneway::new_inputs(attr),
-                "InputAmountsType",
-            ));
-        } else if attr.path().is_ident("recipe_outputs") {
-            outputs = Some(derive_recipe_oneway(
-                &DeriveRecipeOneway::new_outputs(attr),
-                "OutputAmountsType",
-            ));
-        } else if attr.path().is_ident("recipe_ticks") {
-            ticks = Some(
-                attr.parse_args::<LitInt>()
-                    .expect("Invalid \"recipe_ticks\" value"),
-            );
-        }
-    }
-    let inputs = inputs.expect("Missing \"recipe_inputs\" attribute");
-    let outputs = outputs.expect("Missing \"recipe_outputs\" attribute");
-    let ticks = ticks.expect("Missing \"recipe_ticks\" attribute");
-
-    let name = input.ident;
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    quote! {
-        impl #impl_generics #Crate::recipe::Recipe for #name #ty_generics #where_clause {
-            const TIME: u64 = #ticks;
-
-            #inputs
-            #outputs
-        }
-    }
-}
-
-fn derive_recipe_ex_inner(input: DeriveInput) -> TokenStream {
-    let mut inputs = None;
-    let mut outputs = None;
-    for attr in &input.attrs {
-        if attr.path().is_ident("recipe_inputs") {
-            inputs = Some(derive_recipe_ex_oneway(
-                &DeriveRecipeOneway::new_inputs(attr),
-                "new_inputs",
-                "iter_inputs",
-            ));
-        } else if attr.path().is_ident("recipe_outputs") {
-            outputs = Some(derive_recipe_ex_oneway(
-                &DeriveRecipeOneway::new_outputs(attr),
-                "new_outputs",
-                "iter_outputs",
-            ));
-        }
-    }
-    let inputs = inputs.expect("Missing \"recipe_inputs\" attribute");
-    let outputs = outputs.expect("Missing \"recipe_outputs\" attribute");
-
-    let name = input.ident;
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    quote! {
-        impl #impl_generics #Crate::recipe::RecipeEx for #name #ty_generics #where_clause {
-            #inputs
-            #outputs
-        }
-    }
-}
 
 #[proc_macro_derive(Recipe, attributes(recipe_inputs, recipe_outputs, recipe_ticks))]
 pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let output = derive_recipe_inner(input);
+    let recipe_info = RecipeDetails::from_input(input);
+    let output = recipe_info.recipe_impl();
     proc_macro::TokenStream::from(output)
 }
 
 #[proc_macro_derive(RecipeEx, attributes(recipe_inputs, recipe_outputs, recipe_ticks))]
 pub fn derive_recipe_ex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let output = derive_recipe_ex_inner(input);
+    let recipe_info = RecipeDetails::from_input(input);
+    let output = recipe_info.recipe_ex_impl();
     proc_macro::TokenStream::from(output)
 }
