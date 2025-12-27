@@ -167,8 +167,9 @@ fn derive_recipe_inner(input: DeriveInput) -> TokenStream {
     let ticks = ticks.expect("Missing \"recipe_ticks\" attribute");
 
     let name = input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     quote! {
-        impl ::rustorio_engine::recipe::Recipe for #name {
+        impl #impl_generics ::rustorio_engine::recipe::Recipe for #name #ty_generics #where_clause {
             const TIME: u64 = #ticks;
 
             #inputs
@@ -199,8 +200,9 @@ fn derive_recipe_ex_inner(input: DeriveInput) -> TokenStream {
     let outputs = outputs.expect("Missing \"recipe_outputs\" attribute");
 
     let name = input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     quote! {
-        impl ::rustorio_engine::recipe::RecipeEx for #name {
+        impl #impl_generics ::rustorio_engine::recipe::RecipeEx for #name #ty_generics #where_clause {
             #inputs
             #outputs
         }
