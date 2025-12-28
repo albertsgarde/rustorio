@@ -1,11 +1,28 @@
+use proc_macro_crate::FoundCrate;
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{ToTokens, quote};
 use syn::{
     Attribute, DeriveInput, Ident, LitInt, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
 };
+
+struct Crate;
+
+impl ToTokens for Crate {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let found_crate =
+            proc_macro_crate::crate_name("rustorio-engine").expect("Failed to get crate name");
+        match found_crate {
+            FoundCrate::Itself => quote! {crate}.to_tokens(tokens),
+            FoundCrate::Name(name) => {
+                let crate_ident = Ident::new(&name, Span::call_site());
+                quote! {::#crate_ident}.to_tokens(tokens);
+            }
+        }
+    }
+}
 
 struct RecipeItemAttrArgs(LitInt, Type);
 
@@ -89,7 +106,7 @@ fn derive_recipe_oneway(oneway: &DeriveRecipeOneway, amount_type_name: &str) -> 
 
     let recipe_items = per_type
         .iter()
-        .map(|(amount, ty)| quote! {::rustorio_engine::recipe::RecipeItem<#amount, #ty>});
+        .map(|(amount, ty)| quote! {#Crate::recipe::RecipeItem<#amount, #ty>});
 
     quote! {
         type #item_type_ident = (#(#recipe_items,)*);
@@ -113,7 +130,7 @@ fn derive_recipe_ex_oneway(
     let new_fn_ident = Ident::new(new_fn_name, Span::call_site());
     let new_values = per_type
         .iter()
-        .map(|_| quote! {::rustorio_engine::recipe::RecipeItem::default()});
+        .map(|_| quote! {#Crate::recipe::RecipeItem::default()});
 
     let iter_fn_ident = Ident::new(iter_fn_name, Span::call_site());
     let iter_values = per_type
@@ -122,9 +139,9 @@ fn derive_recipe_ex_oneway(
         .map(|(i, (_amount, resource_type))| {
             let i = LitInt::new(&i.to_string(), Span::call_site());
             quote! {(
-                <#resource_type as ::rustorio_engine::ResourceType>::NAME,
+                <#resource_type as #Crate::ResourceType>::NAME,
                 Self::#amount_const_ident.#i,
-                ::rustorio_engine::recipe::recipe_item_amount(&mut items.#i)
+                #Crate::recipe::recipe_item_amount(&mut items.#i)
             )}
         });
 
@@ -169,7 +186,7 @@ fn derive_recipe_inner(input: DeriveInput) -> TokenStream {
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     quote! {
-        impl #impl_generics ::rustorio_engine::recipe::Recipe for #name #ty_generics #where_clause {
+        impl #impl_generics #Crate::recipe::Recipe for #name #ty_generics #where_clause {
             const TIME: u64 = #ticks;
 
             #inputs
@@ -202,7 +219,7 @@ fn derive_recipe_ex_inner(input: DeriveInput) -> TokenStream {
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     quote! {
-        impl #impl_generics ::rustorio_engine::recipe::RecipeEx for #name #ty_generics #where_clause {
+        impl #impl_generics #Crate::recipe::RecipeEx for #name #ty_generics #where_clause {
             #inputs
             #outputs
         }
