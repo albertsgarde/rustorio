@@ -9,6 +9,7 @@ alias t := test
 
 check STRICT="":
     cargo clippy --all --all-targets {{ if STRICT != "" { "-- -D warnings" } else { "" } }}
+    {{ if STRICT != "" { "RUSTFLAGS=\"-Dwarnings\" RUSTDOCFLAGS=\"-Dwarnings\"" } else { "" } }} cargo doc --no-deps
     cargo fmt --check --all
     just test
 

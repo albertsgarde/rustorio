@@ -3,6 +3,7 @@ use rustorio::{
     buildings::{Assembler, Furnace},
     gamemodes::Standard,
     recipes::{CopperSmelting, IronSmelting, RedScienceRecipe},
+    research::Lab,
     territory::Miner,
 };
 
@@ -91,12 +92,27 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Vi
     println!("Iron left: {}", iron.amount());
     println!("Copper left: {}", copper.amount());
 
-    assembler.inputs(&tick).0.add(iron.bundle::<5>().unwrap());
-    assembler.inputs(&tick).1.add(copper.bundle::<5>().unwrap());
-    tick.advance_until(|tick| assembler.outputs(tick).0.amount() >= 5, 100);
-    let red_science = assembler.outputs(&tick).0.bundle().unwrap();
+    assembler.inputs(&tick).0.add(iron.bundle::<10>().unwrap());
+    assembler
+        .inputs(&tick)
+        .1
+        .add(copper.bundle::<10>().unwrap());
+    tick.advance_until(|tick| assembler.outputs(tick).0.amount() >= 10, 100);
+    let red_science = assembler.outputs(&tick).0.empty();
 
-    let points_recipe = points_technology.research(red_science);
+    let mut lab = Lab::build(
+        &tick,
+        &points_technology,
+        iron.bundle().unwrap(),
+        copper.bundle().unwrap(),
+    );
+
+    lab.inputs(&tick).0.add(red_science);
+    tick.advance_until(|tick| lab.inputs(tick).0.amount() == 0, 1000);
+
+    let tech_points = lab.outputs(&tick).0.bundle().unwrap();
+
+    let points_recipe = points_technology.research(tech_points);
     println!("Points researched!");
 
     println!("Iron left: {}", iron.amount());

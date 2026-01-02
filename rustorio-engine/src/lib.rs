@@ -11,7 +11,7 @@ pub mod gamemodes;
 pub mod machine;
 pub mod recipe;
 pub mod research;
-mod resources;
+pub mod resources;
 mod tick;
 
 use std::sync::Once;
@@ -55,7 +55,7 @@ pub mod mod_reexports {
         gamemodes::GameMode,
         play,
         recipe::Recipe,
-        research::{RedScience, Technology},
+        research::Technology,
         resources::{Bundle, InsufficientResourceError, Resource},
         tick::Tick,
     };

@@ -6,10 +6,12 @@ use std::fmt::Debug;
 use rustorio_engine::{
     Sealed,
     recipe::{Recipe, RecipeEx},
-    research::RedScience,
 };
 
-use crate::resources::{Copper, CopperOre, Iron, IronOre, Point};
+use crate::{
+    research::RedScience,
+    resources::{Copper, CopperOre, Iron, IronOre, Point},
+};
 
 /// Any recipe that implements this trait can be used in an [`Assembler`](crate::buildings::Assembler).
 pub trait AssemblerRecipe: Debug + Sealed + RecipeEx {}

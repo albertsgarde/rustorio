@@ -1,6 +1,6 @@
 //! Territories are where you can get ore.
 //! To begin with you can mine by hand using the [`hand_mine`](Territory::hand_mine) function,
-//! but later you can add [`Miner`](Miner)s to the territory to automate mining.
+//! but later you can add [`Miner`]s to the territory to automate mining.
 
 use std::fmt::Display;
 
