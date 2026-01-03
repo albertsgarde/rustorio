@@ -13,6 +13,8 @@ fn main() {
 #[allow(unused_variables)]
 #[allow(unused_mut)]
 fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bundle<Copper, 4>) {
+    tick.log(true);
+
     let StartingResources {
         iron,
         iron_territory,

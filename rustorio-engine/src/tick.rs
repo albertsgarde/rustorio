@@ -14,7 +14,10 @@ pub struct Tick {
 
 impl Tick {
     pub(crate) const fn start() -> Self {
-        Self { tick: 0, log: true }
+        Self {
+            tick: 0,
+            log: false,
+        }
     }
 
     /// Sets whether or not to log on tick advancement.

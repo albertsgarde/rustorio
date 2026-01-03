@@ -17,8 +17,6 @@ pub fn standard_simple() {
 }
 
 fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, VictoryResources) {
-    tick.log(false);
-
     let StartingResources {
         iron,
         mut iron_territory,

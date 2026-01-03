@@ -11,6 +11,8 @@ fn tutorial() {
 }
 
 fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, VictoryResources) {
+    tick.log(true);
+
     let StartingResources {
         iron,
         iron_territory: _iron_territory,
