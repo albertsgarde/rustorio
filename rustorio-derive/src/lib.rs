@@ -2,7 +2,7 @@ use proc_macro_crate::FoundCrate;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Attribute, DeriveInput, Generics, Ident, LitInt, Token, Type, parenthesized,
+    Attribute, DeriveInput, Generics, Ident, ItemStruct, LitInt, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
@@ -277,16 +277,27 @@ struct TechnologyDetails {
     name: Ident,
     generics: Generics,
     research_inputs: RecipeItemList,
+    research_point_cost: LitInt,
     research_ticks: LitInt,
 }
 
 impl TechnologyDetails {
     fn from_derive(input: DeriveInput) -> Self {
+        Self::from_attrs(&input.attrs, input.ident, input.generics)
+    }
+
+    fn from_attrs(attrs: &[Attribute], name: Ident, generics: Generics) -> Self {
         let mut research_inputs = None;
+        let mut research_point_cost = None;
         let mut research_ticks = None;
-        for attr in &input.attrs {
+        for attr in attrs {
             if attr.path().is_ident("research_inputs") {
                 research_inputs = Some(RecipeItemList::new_inputs(attr));
+            } else if attr.path().is_ident("research_point_cost") {
+                research_point_cost = Some(
+                    attr.parse_args::<LitInt>()
+                        .expect("Invalid \"research_point_cost\" value"),
+                );
             } else if attr.path().is_ident("research_ticks") {
                 research_ticks = Some(
                     attr.parse_args::<LitInt>()
@@ -295,14 +306,43 @@ impl TechnologyDetails {
             }
         }
         let research_inputs = research_inputs.expect("Missing \"research_inputs\" attribute");
+        let research_point_cost =
+            research_point_cost.expect("Missing \"research_point_cost\" attribute");
         let research_ticks = research_ticks.expect("Missing \"research_ticks\" attribute");
 
         Self {
-            name: input.ident,
-            generics: input.generics,
+            name,
+            generics,
             research_inputs,
+            research_point_cost,
             research_ticks,
         }
+    }
+
+    fn generate_doc(&self) -> String {
+        let mut doc_lines = Vec::new();
+
+        // Add research inputs section
+        doc_lines.push("### Cost".to_string());
+        for (amount, ty) in &self.research_inputs.item_list {
+            let type_str = quote! { #ty }.to_string();
+            doc_lines.push(format!("- [`{type_str}`] :  {amount} "));
+        }
+        doc_lines.push(String::new());
+
+        // Add research time section
+        doc_lines.push(format!(
+            "<b>Research time</b>: {} ticks\n",
+            self.research_ticks
+        ));
+
+        // Add research point cost section
+        doc_lines.push(format!(
+            "<b>Research points required</b>: {}",
+            self.research_point_cost
+        ));
+
+        doc_lines.join("\n")
     }
 
     fn technology_impl(&self) -> TokenStream {
@@ -312,6 +352,7 @@ impl TechnologyDetails {
         let inputs_stream = self
             .research_inputs
             .generate_recipe_direction("InputAmountsType");
+        let research_point_cost = &self.research_point_cost;
         let research_time = &self.research_ticks;
 
         let implementing_trait_path = quote! {#Crate::research::TechnologyEx};
@@ -327,6 +368,7 @@ impl TechnologyDetails {
         quote! {
             impl #impl_generics #Crate::research::TechnologyEx for #name #ty_generics #where_clause {
                 #inputs_stream
+                const RESEARCH_POINT_COST: u32 = #research_point_cost;
                 const RESEARCH_TIME: u64 = #research_time;
 
                 #new_inputs_method_stream
@@ -336,10 +378,38 @@ impl TechnologyDetails {
     }
 }
 
-#[proc_macro_derive(TechnologyEx, attributes(research_inputs, research_ticks))]
+#[proc_macro_derive(
+    TechnologyEx,
+    attributes(research_inputs, research_point_cost, research_ticks)
+)]
 pub fn derive_technology(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let tech_info = TechnologyDetails::from_derive(input);
     let output = tech_info.technology_impl();
     proc_macro::TokenStream::from(output)
+}
+
+/// Generates documentation for a technology struct based on its `research_inputs` and `research_ticks` attributes.
+/// The generated documentation is prepended to any existing documentation on the struct.
+#[proc_macro_attribute]
+pub fn technology_doc(
+    _args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let mut item = parse_macro_input!(input as ItemStruct);
+
+    // Parse the technology details from the struct's attributes
+    let tech_info =
+        TechnologyDetails::from_attrs(&item.attrs, item.ident.clone(), item.generics.clone());
+
+    // Generate the documentation
+    let generated_doc = tech_info.generate_doc();
+    let doc_attr: Attribute = syn::parse_quote! {
+        #[doc = #generated_doc]
+    };
+
+    // Insert the generated doc at the beginning of the attributes
+    item.attrs.push(doc_attr);
+
+    quote! { #item }.into()
 }

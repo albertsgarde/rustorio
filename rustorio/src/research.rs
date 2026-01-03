@@ -11,7 +11,7 @@ use rustorio_engine::{
     machine::{Machine, MachineNotEmptyError},
     mod_reexports::Tick,
     recipe::{Recipe, RecipeEx},
-    research::{ResearchPoint, TechRecipe, Technology, TechnologyEx, tech_recipe},
+    research::{ResearchPoint, TechRecipe, Technology, TechnologyEx, tech_recipe, technology_doc},
     resource_type,
 };
 
@@ -39,8 +39,10 @@ resource_type!(
 pub struct RedScienceRecipe;
 
 /// Technology that unlocks the ability to produce points.
+#[technology_doc]
 #[derive(Debug, TechnologyEx)]
 #[research_inputs((1, RedScience))]
+#[research_point_cost(10)]
 #[research_ticks(50)]
 #[non_exhaustive]
 pub struct PointsTechnology;
@@ -48,7 +50,6 @@ impl Sealed for PointsTechnology {}
 
 impl Technology for PointsTechnology {
     const NAME: &'static str = "Points";
-    const RESEARCH_POINT_COST: u32 = 10;
     type Unlocks = PointRecipe;
 
     fn research(

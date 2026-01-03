@@ -5,7 +5,7 @@
 
 use std::{fmt::Debug, marker::PhantomData};
 
-pub use rustorio_derive::TechnologyEx;
+pub use rustorio_derive::{TechnologyEx, technology_doc};
 
 use crate::{
     ResourceType, Sealed,
@@ -18,8 +18,6 @@ use crate::{
 pub trait Technology: Sealed + Debug + Sized + TechnologyEx {
     /// The name of the technology.
     const NAME: &'static str;
-    /// How many of this technology's research points (`ResearchPoint<T>`) are needed to complete the research.
-    const RESEARCH_POINT_COST: u32;
     /// The reward for completing this technology.
     type Unlocks;
 
@@ -41,6 +39,8 @@ pub trait TechnologyEx {
     type InputAmountsType: Debug;
     /// Amount for each of the input resource types, per recipe cycle.
     const INPUT_AMOUNTS: Self::InputAmountsType;
+    /// How many of this technology's research points (`ResearchPoint<T>`) are needed to complete the research.
+    const RESEARCH_POINT_COST: u32;
     /// The amount of ticks it takes to create one research point for this technology.
     const RESEARCH_TIME: u64;
 
@@ -67,11 +67,6 @@ impl<T: Technology> ResourceType for ResearchPoint<T> {
 
 /// A recipe for producing research points for specific technologies.
 #[derive(Debug)]
-/*#[recipe_inputs(T::ResearchCost)]
-#[recipe_outputs(
-    (1, ResearchPoint<T>),
-)]
-#[recipe_ticks(1)]*/
 pub struct TechRecipe<T: Technology> {
     _marker: PhantomData<T>,
 }
