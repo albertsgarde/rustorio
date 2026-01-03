@@ -47,7 +47,6 @@ impl Parse for RecipeItemsAttr {
     }
 }
 
-#[derive(Clone)]
 struct RecipeItemList {
     item_list: Vec<(u32, Type)>,
     item_type_ident: Ident,
@@ -277,8 +276,8 @@ struct TechnologyDetails {
     name: Ident,
     generics: Generics,
     research_inputs: RecipeItemList,
+    research_point_ticks: LitInt,
     research_point_cost: LitInt,
-    research_ticks: LitInt,
 }
 
 impl TechnologyDetails {
@@ -315,14 +314,13 @@ impl TechnologyDetails {
             generics,
             research_inputs,
             research_point_cost,
-            research_ticks,
+            research_point_ticks: research_ticks,
         }
     }
 
     fn generate_doc(&self) -> String {
         let mut doc_lines = Vec::new();
 
-        // Add research inputs section
         doc_lines.push("### Cost".to_string());
         for (amount, ty) in &self.research_inputs.item_list {
             let type_str = quote! { #ty }.to_string();
@@ -330,13 +328,8 @@ impl TechnologyDetails {
         }
         doc_lines.push(String::new());
 
-        // Add research time section
-        doc_lines.push(format!(
-            "<b>Research time</b>: {} ticks\n",
-            self.research_ticks
-        ));
+        doc_lines.push(format!("<b>Ticks</b>: {}\n", self.research_point_ticks));
 
-        // Add research point cost section
         doc_lines.push(format!(
             "<b>Research points required</b>: {}",
             self.research_point_cost
@@ -353,7 +346,7 @@ impl TechnologyDetails {
             .research_inputs
             .generate_recipe_direction("InputAmountsType");
         let research_point_cost = &self.research_point_cost;
-        let research_time = &self.research_ticks;
+        let research_point_ticks = &self.research_point_ticks;
 
         let implementing_trait_path = quote! {#Crate::research::TechnologyEx};
 
@@ -368,8 +361,8 @@ impl TechnologyDetails {
         quote! {
             impl #impl_generics #Crate::research::TechnologyEx for #name #ty_generics #where_clause {
                 #inputs_stream
+                const POINT_RECIPE_TIME: u64 = #research_point_ticks;
                 const RESEARCH_POINT_COST: u32 = #research_point_cost;
-                const RESEARCH_TIME: u64 = #research_time;
 
                 #new_inputs_method_stream
                 #iter_inputs_method_stream

@@ -39,10 +39,10 @@ pub trait TechnologyEx {
     type InputAmountsType: Debug;
     /// Amount for each of the input resource types, per recipe cycle.
     const INPUT_AMOUNTS: Self::InputAmountsType;
+    /// The amount of ticks it takes to create one research point for this technology.
+    const POINT_RECIPE_TIME: u64;
     /// How many of this technology's research points (`ResearchPoint<T>`) are needed to complete the research.
     const RESEARCH_POINT_COST: u32;
-    /// The amount of ticks it takes to create one research point for this technology.
-    const RESEARCH_TIME: u64;
 
     /// Factory function to create a new `Self::Inputs` with zero resources.
     fn new_inputs() -> Self::Inputs;
@@ -75,7 +75,7 @@ impl<T> Recipe for TechRecipe<T>
 where
     T: Technology,
 {
-    const TIME: u64 = T::RESEARCH_TIME;
+    const TIME: u64 = T::POINT_RECIPE_TIME;
     type Inputs = T::Inputs;
     type InputAmountsType = T::InputAmountsType;
     const INPUT_AMOUNTS: Self::InputAmountsType = T::INPUT_AMOUNTS;
