@@ -17,7 +17,7 @@ doc *FLAGS:
 
 create-remote-branch BRANCH:
     jj bookmark create {{BRANCH}} -r @-
-    jj git push -b make-all-const --allow-new --remote origin
+    jj git push -b {{BRANCH}} --allow-new --remote origin
 
 push BRANCH:
     jj bookmark move {{BRANCH}} --to=@-
