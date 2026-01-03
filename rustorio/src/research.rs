@@ -26,18 +26,6 @@ resource_type!(
     RedScience
 );
 
-/// Creates 1 red science pack by consuming 1 iron and 1 copper. Takes 5 ticks.
-#[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
-#[recipe_inputs(
-    (1, Iron),
-    (1, Copper),
-)]
-#[recipe_outputs(
-    (1, RedScience),
-)]
-#[recipe_ticks(5)]
-pub struct RedScienceRecipe;
-
 /// Technology that unlocks the ability to produce points.
 #[technology_doc]
 #[derive(Debug, TechnologyEx)]

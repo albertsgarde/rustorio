@@ -5,7 +5,7 @@ use std::fmt::Debug;
 
 use rustorio_engine::{
     Sealed,
-    recipe::{Recipe, RecipeEx},
+    recipe::{Recipe, RecipeEx, recipe_doc},
 };
 
 use crate::{
@@ -18,6 +18,7 @@ pub trait AssemblerRecipe: Debug + Sealed + RecipeEx {}
 
 /// A recipe for crafting red science packs.
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[recipe_doc]
 #[recipe_inputs(
     (1, Iron),
     (1, Copper),
@@ -34,6 +35,7 @@ impl AssemblerRecipe for RedScienceRecipe {}
 ///
 /// You can unlock this recipe by researching [`PointsTechnology`](crate::research::PointsTechnology).
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[recipe_doc]
 #[recipe_inputs(
     (4, Iron),
     (4, Copper),
@@ -53,6 +55,7 @@ pub trait FurnaceRecipe: Debug + Sealed + RecipeEx {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts iron ore into iron. Converts 2 iron ore into 1 iron. Takes 10 ticks.
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[recipe_doc]
 #[recipe_inputs(
     (2, IronOre),
 )]
@@ -67,6 +70,7 @@ impl FurnaceRecipe for IronSmelting {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts copper ore into copper. Converts 2 copper ore into 1 copper. Takes 10 ticks.
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[recipe_doc]
 #[recipe_inputs(
     (2, CopperOre),
 )]

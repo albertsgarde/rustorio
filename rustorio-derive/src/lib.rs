@@ -183,10 +183,14 @@ struct RecipeDetails {
 
 impl RecipeDetails {
     fn from_input(input: DeriveInput) -> Self {
+        Self::from_attrs(&input.attrs, input.ident, input.generics)
+    }
+
+    fn from_attrs(attrs: &[Attribute], name: Ident, generics: Generics) -> Self {
         let mut inputs = None;
         let mut outputs = None;
         let mut ticks = None;
-        for attr in &input.attrs {
+        for attr in attrs {
             if attr.path().is_ident("recipe_inputs") {
                 inputs = Some(RecipeItemList::new_inputs(attr));
             } else if attr.path().is_ident("recipe_outputs") {
@@ -203,12 +207,32 @@ impl RecipeDetails {
         let ticks = ticks.expect("Missing \"recipe_ticks\" attribute");
 
         Self {
-            name: input.ident,
-            generics: input.generics,
+            name,
+            generics,
             inputs,
             outputs,
             ticks,
         }
+    }
+
+    fn generate_doc(&self) -> String {
+        let mut doc_lines = Vec::new();
+
+        doc_lines.push("### Input".to_string());
+        for (amount, ty) in &self.inputs.item_list {
+            let type_str = quote! { #ty }.to_string();
+            doc_lines.push(format!("- [`{type_str}`] :  {amount}\n"));
+        }
+        doc_lines.push("### Output".to_string());
+        for (amount, ty) in &self.outputs.item_list {
+            let type_str = quote! { #ty }.to_string();
+            doc_lines.push(format!("- [`{type_str}`] :  {amount}\n"));
+        }
+        doc_lines.push("### Time".to_string());
+
+        doc_lines.push(format!("- **Ticks**: {}\n", self.ticks));
+
+        doc_lines.join("\n")
     }
 
     fn recipe_impl(&self) -> TokenStream {
@@ -272,11 +296,33 @@ pub fn derive_recipe_ex(input: proc_macro::TokenStream) -> proc_macro::TokenStre
     proc_macro::TokenStream::from(output)
 }
 
+/// Generates documentation for a recipe based on its inputs and outputs.
+/// The generated documentation is appended to any existing documentation on the struct.
+#[proc_macro_attribute]
+pub fn recipe_doc(
+    _args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let mut item = parse_macro_input!(input as ItemStruct);
+    let recipe_info =
+        RecipeDetails::from_attrs(&item.attrs, item.ident.clone(), item.generics.clone());
+
+    let generated_doc = recipe_info.generate_doc();
+    let doc_attr: Attribute = syn::parse_quote! {
+        #[doc = #generated_doc]
+    };
+
+    // Insert the generated doc at the beginning of the attributes
+    item.attrs.push(doc_attr);
+
+    quote! { #item }.into()
+}
+
 struct TechnologyDetails {
     name: Ident,
     generics: Generics,
     research_inputs: RecipeItemList,
-    research_point_ticks: LitInt,
+    point_recipe_time: LitInt,
     research_point_cost: LitInt,
 }
 
@@ -314,7 +360,7 @@ impl TechnologyDetails {
             generics,
             research_inputs,
             research_point_cost,
-            research_point_ticks: research_ticks,
+            point_recipe_time: research_ticks,
         }
     }
 
@@ -324,14 +370,13 @@ impl TechnologyDetails {
         doc_lines.push("### Cost".to_string());
         for (amount, ty) in &self.research_inputs.item_list {
             let type_str = quote! { #ty }.to_string();
-            doc_lines.push(format!("- [`{type_str}`] :  {amount} "));
+            doc_lines.push(format!("- [`{type_str}`] :  {amount}\n"));
         }
-        doc_lines.push(String::new());
 
-        doc_lines.push(format!("<b>Ticks</b>: {}\n", self.research_point_ticks));
+        doc_lines.push(format!("**Ticks**: {}\n", self.point_recipe_time));
 
         doc_lines.push(format!(
-            "<b>Research points required</b>: {}",
+            "**Research points required**: {}",
             self.research_point_cost
         ));
 
@@ -346,7 +391,7 @@ impl TechnologyDetails {
             .research_inputs
             .generate_recipe_direction("InputAmountsType");
         let research_point_cost = &self.research_point_cost;
-        let research_point_ticks = &self.research_point_ticks;
+        let point_recipe_time = &self.point_recipe_time;
 
         let implementing_trait_path = quote! {#Crate::research::TechnologyEx};
 
@@ -361,7 +406,7 @@ impl TechnologyDetails {
         quote! {
             impl #impl_generics #Crate::research::TechnologyEx for #name #ty_generics #where_clause {
                 #inputs_stream
-                const POINT_RECIPE_TIME: u64 = #research_point_ticks;
+                const POINT_RECIPE_TIME: u64 = #point_recipe_time;
                 const RESEARCH_POINT_COST: u32 = #research_point_cost;
 
                 #new_inputs_method_stream
@@ -383,7 +428,7 @@ pub fn derive_technology(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 }
 
 /// Generates documentation for a technology struct based on its `research_inputs` and `research_ticks` attributes.
-/// The generated documentation is prepended to any existing documentation on the struct.
+/// The generated documentation is appended to any existing documentation on the struct.
 #[proc_macro_attribute]
 pub fn technology_doc(
     _args: proc_macro::TokenStream,

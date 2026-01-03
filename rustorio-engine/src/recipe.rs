@@ -2,7 +2,7 @@
 
 use std::ops::{Deref, DerefMut};
 
-pub use rustorio_derive::{Recipe, RecipeEx};
+pub use rustorio_derive::{Recipe, RecipeEx, recipe_doc};
 
 use crate::{ResourceType, resources::Resource};
 
