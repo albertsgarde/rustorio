@@ -25,7 +25,7 @@ You can use this to create a [`Furnace`](https://docs.rs/rustorio/latest/rustori
 
     let copper_ore = copper_territory.hand_mine::<8>(&mut tick);
 
-    furnace.inputs(&tick).0.add(copper_ore);
+    furnace.inputs(&tick).0 += copper_ore;
     tick.advance_until(|tick| furnace.outputs(tick).0.amount() >= 1, 100);
 ```
 
@@ -50,7 +50,7 @@ The game is pretty simple and easy right now, but I have many ideas for future f
    many ticks it took you to win.
 
 ### After the tutorial
-To play other game modes, run `rustorio new-game GAMEMODE` and specify a game mode like `standard`.
+To play other game modes, run `rustorio new-game SAVENAME -g GAMEMODE` and specify a game mode like `standard`.
 Use `rustorio new-game --help` to see all available game modes.
 
 ## Rules
