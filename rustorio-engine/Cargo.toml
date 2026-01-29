@@ -14,4 +14,4 @@ documentation = "https://docs.rs/rustorio-engine"
 workspace = true
 
 [dependencies]
-rustorio-derive = { path = "../rustorio-derive", version = "0.1.1" }
+rustorio-derive = { path = "../rustorio-derive", version = "0.1.2" }
