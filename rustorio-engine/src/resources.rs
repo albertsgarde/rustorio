@@ -189,6 +189,7 @@ impl<Content: ResourceType> Resource<Content> {
     }
 
     /// Adds the entire contents of another resource container to this one.
+    /// You can also use `+=`.
     pub fn add(&mut self, other: impl Into<Self>) {
         self.amount += other.into().amount();
     }

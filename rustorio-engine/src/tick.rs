@@ -11,8 +11,8 @@ use std::fmt::Display;
 /// Let's say we have two furnaces the we want to fill with `iron_ore` and `copper_ore` respectively, and then advance time so they can smelt the ore into ingots:
 /// ```
 /// // Add ore to the furnaces at the current tick
-/// furnace1.inputs(&tick).0.add(iron_ore);
-/// furnace2.inputs(&tick).0.add(copper_ore);
+/// furnace1.inputs(&tick).0 += iron_ore;
+/// furnace2.inputs(&tick).0 += copper_ore;
 /// // Advance time by 10 ticks so the furnaces can process some of the ore.
 /// tick.advance_by(10);
 /// // Now we can extract the smelted ingots from the furnaces
