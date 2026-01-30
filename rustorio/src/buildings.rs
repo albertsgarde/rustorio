@@ -22,7 +22,7 @@ use crate::{
 /// The assembler can craft most items in the game.
 ///
 /// To use, first build the assembler using [`Assembler::build`], providing the desired recipe and the required resources.
-/// Then, add inputs using [`inputs`](Assembler::inputs), for example `assembler.inputs(&tick).0.add(bundle)`.
+/// Then, add inputs using [`inputs`](Assembler::inputs), for example `assembler.inputs(&tick).0 += bundle`.
 /// The assembler will automatically process the inputs over time, which can be advanced using the [`Tick`].
 /// Outputs can be extracted using [`outputs`](Assembler::outputs), for example `assembler.outputs(&tick).0.bundle::<1>()`.
 /// If you want to change the recipe, use [`change_recipe`](Assembler::change_recipe), but ensure the assembler is empty first.
@@ -79,7 +79,7 @@ impl<R: AssemblerRecipe> Assembler<R> {
 /// The furnace is used to smelt ores into base resources.
 ///
 /// To use, first build the furnace using [`Furnace::build`], providing the desired recipe and the required resources.
-/// Then, add inputs using [`inputs`](Furnace::inputs), for example `furnace.inputs(&tick).0.add(bundle)`.
+/// Then, add inputs using [`inputs`](Furnace::inputs), for example `furnace.inputs(&tick).0 += bundle`.
 /// The furnace will automatically process the inputs over time, which can be advanced using the [`Tick`].
 /// Outputs can be extracted using [`outputs`](Furnace::outputs), for example `furnace.outputs(&tick).0.bundle::<1>()`.
 /// If you want to change the recipe, use [`change_recipe`](Furnace::change_recipe), but ensure the furnace is empty first.

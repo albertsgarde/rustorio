@@ -82,14 +82,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
     let mut copper_wire: Resource<CopperWire> = Resource::new_empty();
     let mut iron: Resource<Iron> = Resource::new_empty();
     while copper_wire.amount() < 12 || iron.amount() < 6 {
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
         iron += iron_furnace.outputs(&tick).0.empty();
         if let Ok(copper) = copper_furnace.outputs(&tick).0.bundle() {
             copper_wire += craft::<CopperWireRecipe>((copper,), &mut tick).0;
@@ -107,14 +101,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
     println!("Created assembler for copper wire at tick {}", tick.cur());
 
     let mut circuit_assembler = loop {
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
         iron += iron_furnace.outputs(&tick).0.empty();
         copper_wire_assembler.inputs(&tick).0 += copper_furnace.outputs(&tick).0.empty();
         copper_wire += copper_wire_assembler.outputs(&tick).0.empty();
@@ -132,14 +120,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
     println!("Created assembler for circuits at tick {}", tick.cur());
 
     let mut red_science_assembler = loop {
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
         iron += iron_furnace.outputs(&tick).0.empty();
         copper_wire_assembler.inputs(&tick).0 += copper_furnace.outputs(&tick).0.empty();
         copper_wire += copper_wire_assembler.outputs(&tick).0.empty();
@@ -162,14 +144,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
         } else {
             iron_furnace.inputs(&tick).0 += iron_territory.hand_mine::<1>(&mut tick);
         }
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
         iron += iron_furnace.outputs(&tick).0.empty();
         if iron.amount() >= 20
             && let Ok(copper) = copper_furnace.outputs(&tick).0.bundle()
@@ -198,14 +174,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
 
         copper_wire_assembler.inputs(&tick).0 += copper_furnace.outputs(&tick).0.empty();
 
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
         tick.advance();
     }
 
@@ -233,14 +203,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
 
         copper_wire_assembler.inputs(&tick).0 += copper_furnace.outputs(&tick).0.empty();
 
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
         tick.advance();
     }
 
@@ -249,14 +213,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
     println!("Researched points technology at tick {}", tick.cur());
 
     let mut steel_furnace = loop {
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
         iron += iron_furnace.outputs(&tick).0.empty();
         if iron.amount() >= 10 {
             break Furnace::build(&tick, steel_smelting, iron.bundle().unwrap());
@@ -269,14 +227,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
     let mut copper_wire: Resource<CopperWire> = Resource::new_empty();
     let mut iron: Resource<Iron> = Resource::new_empty();
     let mut point_assembler = loop {
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
 
         copper_wire_assembler.inputs(&tick).0 += copper_furnace.outputs(&tick).0.empty();
         copper_wire += copper_wire_assembler.outputs(&tick).0.empty();
@@ -313,14 +265,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
 
         copper_wire_assembler.inputs(&tick).0 += copper_furnace.outputs(&tick).0.empty();
 
-        iron_furnace
-            .inputs(&tick)
-            .0
-            .add(iron_territory.resources(&tick).empty());
-        copper_furnace
-            .inputs(&tick)
-            .0
-            .add(copper_territory.resources(&tick).empty());
+        iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
+        copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
         tick.advance();
     }
 
