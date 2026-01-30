@@ -55,7 +55,7 @@ Use `rustorio new-game --help` to see all available game modes.
 
 ## Rules
 The rules are mostly enforced by the compiler. The only two (current) exceptions are:
-1. Do not remove `#![forbid(unsafe_code)]` at the top of the `main.rs` file.
+1. Do not remove `#![forbid(unsafe_code)]` or `#![forbid(internal_features)]` at the top of the `main.rs` file.
 2. Do not exploit unsoundness in the compiler.
 
 Both these would enable you to bypass the rules enforced by the compiler and make the game trivial.
