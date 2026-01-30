@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![forbid(internal_features)]
 
 use rustorio::{self, Bundle, Tick, gamemodes::Tutorial, resources::Copper};
 
