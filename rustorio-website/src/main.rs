@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
@@ -13,6 +14,9 @@ const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
+    #[cfg(feature = "server")]
+    init_db().expect("Failed to initialize database");
+
     dioxus::launch(App);
 }
 
@@ -27,41 +31,129 @@ fn App() -> Element {
 }
 
 /// Represents a player's score on the leaderboard
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 struct LeaderboardEntry {
     name: String,
     ticks: u64,
 }
 
+#[cfg(feature = "server")]
+fn get_db() -> Result<rusqlite::Connection, rusqlite::Error> {
+    rusqlite::Connection::open("rustorio.db")
+}
+
+#[cfg(feature = "server")]
+fn init_db() -> Result<(), rusqlite::Error> {
+    let conn = get_db()?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE
+        )",
+        [],
+    )?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS runs (
+            run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            tick_count INTEGER NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )",
+        [],
+    )?;
+
+    // Insert sample data if tables are empty
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM users", [], |row| row.get(0))?;
+    if count == 0 {
+        conn.execute(
+            "INSERT INTO users (name) VALUES
+                ('SpeedRunner42'),
+                ('FactorioMaster'),
+                ('OptimalPath'),
+                ('RocketScience'),
+                ('NewPlayer')",
+            [],
+        )?;
+
+        conn.execute(
+            "INSERT INTO runs (user_id, tick_count) VALUES
+                (1, 12543),
+                (1, 14000),
+                (2, 15221),
+                (2, 18000),
+                (3, 18902),
+                (4, 21445),
+                (5, 45678)",
+            [],
+        )?;
+    }
+
+    Ok(())
+}
+
+#[server]
+async fn get_leaderboard() -> Result<Vec<LeaderboardEntry>, ServerFnError> {
+    let conn = get_db().map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT users.name, MIN(runs.tick_count) as best_ticks
+             FROM runs
+             JOIN users ON runs.user_id = users.id
+             GROUP BY users.id
+             ORDER BY best_ticks ASC",
+        )
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    let entries = stmt
+        .query_map([], |row| {
+            Ok(LeaderboardEntry {
+                name: row.get(0)?,
+                ticks: row.get(1)?,
+            })
+        })
+        .map_err(|e| ServerFnError::new(e.to_string()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| ServerFnError::new(e.to_string()))?;
+
+    Ok(entries)
+}
+
 /// Home page
 #[component]
 fn Home() -> Element {
-    let entries = vec![
-        LeaderboardEntry { name: "SpeedRunner42".to_string(), ticks: 12_543 },
-        LeaderboardEntry { name: "FactorioMaster".to_string(), ticks: 15_221 },
-        LeaderboardEntry { name: "OptimalPath".to_string(), ticks: 18_902 },
-        LeaderboardEntry { name: "RocketScience".to_string(), ticks: 21_445 },
-        LeaderboardEntry { name: "NewPlayer".to_string(), ticks: 45_678 },
-    ];
+    let entries = use_server_future(get_leaderboard)?;
 
     rsx! {
         div { class: "container mx-auto p-4",
             h1 { class: "text-2xl font-bold mb-4", "Leaderboard" }
-            table { class: "w-full border-collapse",
-                thead {
-                    tr { class: "border-b",
-                        th { class: "text-left p-2", "Player" }
-                        th { class: "text-right p-2", "Ticks" }
-                    }
-                }
-                tbody {
-                    for (i, entry) in entries.iter().enumerate() {
-                        tr { class: "border-b hover:bg-gray-100",
-                            td { class: "p-2", "{i + 1}. {entry.name}" }
-                            td { class: "text-right p-2", "{entry.ticks}" }
+            match entries() {
+                Some(Ok(entries)) => rsx! {
+                    table { class: "w-full border-collapse",
+                        thead {
+                            tr { class: "border-b",
+                                th { class: "text-left p-2", "Player" }
+                                th { class: "text-right p-2", "Ticks" }
+                            }
+                        }
+                        tbody {
+                            for (i , entry) in entries.iter().enumerate() {
+                                tr { class: "border-b hover:bg-gray-100",
+                                    td { class: "p-2", "{i + 1}. {entry.name}" }
+                                    td { class: "text-right p-2", "{entry.ticks}" }
+                                }
+                            }
                         }
                     }
-                }
+                },
+                Some(Err(e)) => rsx! {
+                    p { class: "text-red-500", "Error loading leaderboard: {e}" }
+                },
+                None => rsx! {
+                    p { "Loading..." }
+                },
             }
         }
     }

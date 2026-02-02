@@ -7,6 +7,11 @@ repository.workspace = true
 
 [dependencies]
 dioxus = { version = "0.7.3", features = ["router", "fullstack"] }
+serde = { version = "1", features = ["derive"] }
+rusqlite = { version = "0.34", optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["sync"] }
 
 [lints]
 workspace = true
@@ -16,4 +21,4 @@ default = ["web"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
-server = ["dioxus/server"]
+server = ["dioxus/server", "rusqlite"]

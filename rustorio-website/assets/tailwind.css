@@ -7,6 +7,7 @@
     'Noto Color Emoji';
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
+    --color-red-500: oklch(63.7% 0.237 25.331);
     --color-gray-100: oklch(96.7% 0.003 264.542);
     --spacing: 0.25rem;
     --text-2xl: 1.5rem;
@@ -224,12 +225,20 @@
     --tw-font-weight: var(--font-weight-bold);
     font-weight: var(--font-weight-bold);
   }
+  .text-red-500 {
+    color: var(--color-red-500);
+  }
   .hover\:bg-gray-100 {
     &:hover {
       @media (hover: hover) {
         background-color: var(--color-gray-100);
       }
     }
+  }
+}
+@layer base {
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
   }
 }
 @property --tw-rotate-x {
