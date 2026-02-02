@@ -26,10 +26,45 @@ fn App() -> Element {
     }
 }
 
+/// Represents a player's score on the leaderboard
+#[derive(Clone, PartialEq)]
+struct LeaderboardEntry {
+    name: String,
+    ticks: u64,
+}
+
 /// Home page
 #[component]
 fn Home() -> Element {
-    rsx! {}
+    let entries = vec![
+        LeaderboardEntry { name: "SpeedRunner42".to_string(), ticks: 12_543 },
+        LeaderboardEntry { name: "FactorioMaster".to_string(), ticks: 15_221 },
+        LeaderboardEntry { name: "OptimalPath".to_string(), ticks: 18_902 },
+        LeaderboardEntry { name: "RocketScience".to_string(), ticks: 21_445 },
+        LeaderboardEntry { name: "NewPlayer".to_string(), ticks: 45_678 },
+    ];
+
+    rsx! {
+        div { class: "container mx-auto p-4",
+            h1 { class: "text-2xl font-bold mb-4", "Leaderboard" }
+            table { class: "w-full border-collapse",
+                thead {
+                    tr { class: "border-b",
+                        th { class: "text-left p-2", "Player" }
+                        th { class: "text-right p-2", "Ticks" }
+                    }
+                }
+                tbody {
+                    for (i, entry) in entries.iter().enumerate() {
+                        tr { class: "border-b hover:bg-gray-100",
+                            td { class: "p-2", "{i + 1}. {entry.name}" }
+                            td { class: "text-right p-2", "{entry.ticks}" }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Shared navbar component.
