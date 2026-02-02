@@ -1,5 +1,5 @@
 [workspace]
-members = ["rustorio-derive", "rustorio-engine", "rustorio"]
+members = ["rustorio-derive", "rustorio-engine", "rustorio", "rustorio-website"]
 resolver = "3"
 
 [workspace.package]
