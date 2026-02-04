@@ -1,6 +1,20 @@
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "server")]
+use clap::Parser;
+
+#[cfg(feature = "server")]
+static DB_PATH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
+#[cfg(feature = "server")]
+#[derive(Parser)]
+struct Args {
+    /// Path to the SQLite database file
+    #[arg(long, default_value = "rustorio.db")]
+    db_path: String,
+}
+
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
@@ -15,7 +29,11 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
     #[cfg(feature = "server")]
-    init_db().expect("Failed to initialize database");
+    {
+        let args = Args::parse();
+        DB_PATH.set(args.db_path).expect("DB_PATH already set");
+        init_db().expect("Failed to initialize database");
+    }
 
     dioxus::launch(App);
 }
@@ -39,7 +57,8 @@ struct LeaderboardEntry {
 
 #[cfg(feature = "server")]
 fn get_db() -> Result<rusqlite::Connection, rusqlite::Error> {
-    rusqlite::Connection::open("rustorio.db")
+    let path = DB_PATH.get().expect("DB_PATH not initialized");
+    rusqlite::Connection::open(path)
 }
 
 #[cfg(feature = "server")]
@@ -111,7 +130,8 @@ async fn get_leaderboard() -> Result<Vec<LeaderboardEntry>, ServerFnError> {
         .query_map([], |row| {
             Ok(LeaderboardEntry {
                 name: row.get(0)?,
-                ticks: row.get(1)?,
+                ticks: u64::try_from(row.get::<_, i64>(1)?)
+                    .expect("Ticks should never surpass i64::MAX"),
             })
         })
         .map_err(|e| ServerFnError::new(e.to_string()))?

@@ -1,24 +1,21 @@
 [package]
 name = "rustorio-website"
 version = "0.1.0"
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
+edition = "2024"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 dioxus = { version = "0.7.3", features = ["router", "fullstack"] }
 serde = { version = "1", features = ["derive"] }
-rusqlite = { version = "0.34", optional = true }
+rusqlite = { version = "0.38", features = ["bundled"], optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["sync"] }
-
-[lints]
-workspace = true
 
 [features]
 default = ["web"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
-server = ["dioxus/server", "rusqlite"]
+server = ["dioxus/server", "rusqlite", "clap"]

@@ -1,5 +1,6 @@
 [workspace]
 members = ["rustorio-derive", "rustorio-engine", "rustorio", "rustorio-website"]
+exclude = []
 resolver = "3"
 
 [workspace.package]
