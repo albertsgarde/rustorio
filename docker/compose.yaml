@@ -1,0 +1,17 @@
+---
+services:
+    backend:
+        container_name: rustorio-website
+        pull_policy: build
+        build:
+            context: ..
+            dockerfile: docker/website.dockerfile
+        image: rustorio-website
+        volumes:
+            - ../${DATA_PATH?data_path}:/app/data/
+        ports:
+            - 8080:8080
+
+networks:
+    app-network:
+        driver: bridge

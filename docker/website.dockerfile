@@ -1,6 +1,7 @@
 FROM lukemathwalker/cargo-chef:0.1.73-rust-1.93 AS chef
 WORKDIR /app
-RUN cargo install dioxus-cli --locked
+RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+RUN cargo binstall dioxus-cli
 
 FROM chef AS planner
 COPY rustorio-website/ .

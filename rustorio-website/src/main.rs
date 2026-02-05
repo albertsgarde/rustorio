@@ -2,6 +2,8 @@ use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "server")]
+use anyhow::Context;
+#[cfg(feature = "server")]
 use clap::Parser;
 
 #[cfg(feature = "server")]
@@ -56,14 +58,14 @@ struct LeaderboardEntry {
 }
 
 #[cfg(feature = "server")]
-fn get_db() -> Result<rusqlite::Connection, rusqlite::Error> {
-    let path = DB_PATH.get().expect("DB_PATH not initialized");
-    rusqlite::Connection::open(path)
+fn get_db() -> anyhow::Result<rusqlite::Connection> {
+    let path = DB_PATH.get().context("DB_PATH not initialized")?;
+    rusqlite::Connection::open(path).context("failed to open database connection")
 }
 
 #[cfg(feature = "server")]
-fn init_db() -> Result<(), rusqlite::Error> {
-    let conn = get_db()?;
+fn init_db() -> anyhow::Result<()> {
+    let conn = get_db().context("failed to get database connection")?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS users (
@@ -71,7 +73,8 @@ fn init_db() -> Result<(), rusqlite::Error> {
             name TEXT NOT NULL UNIQUE
         )",
         [],
-    )?;
+    )
+    .context("failed to create users table")?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS runs (
@@ -81,10 +84,13 @@ fn init_db() -> Result<(), rusqlite::Error> {
             FOREIGN KEY (user_id) REFERENCES users(id)
         )",
         [],
-    )?;
+    )
+    .context("failed to create runs table")?;
 
     // Insert sample data if tables are empty
-    let count: i64 = conn.query_row("SELECT COUNT(*) FROM users", [], |row| row.get(0))?;
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM users", [], |row| row.get(0))
+        .context("failed to count users")?;
     if count == 0 {
         conn.execute(
             "INSERT INTO users (name) VALUES
@@ -94,7 +100,8 @@ fn init_db() -> Result<(), rusqlite::Error> {
                 ('RocketScience'),
                 ('NewPlayer')",
             [],
-        )?;
+        )
+        .context("failed to insert sample users")?;
 
         conn.execute(
             "INSERT INTO runs (user_id, tick_count) VALUES
@@ -106,7 +113,8 @@ fn init_db() -> Result<(), rusqlite::Error> {
                 (4, 21445),
                 (5, 45678)",
             [],
-        )?;
+        )
+        .context("failed to insert sample runs")?;
     }
 
     Ok(())
@@ -114,31 +122,35 @@ fn init_db() -> Result<(), rusqlite::Error> {
 
 #[server]
 async fn get_leaderboard() -> Result<Vec<LeaderboardEntry>, ServerFnError> {
-    let conn = get_db().map_err(|e| ServerFnError::new(e.to_string()))?;
+    fn inner() -> anyhow::Result<Vec<LeaderboardEntry>> {
+        let conn = get_db().context("failed to get database connection")?;
 
-    let mut stmt = conn
-        .prepare(
-            "SELECT users.name, MIN(runs.tick_count) as best_ticks
-             FROM runs
-             JOIN users ON runs.user_id = users.id
-             GROUP BY users.id
-             ORDER BY best_ticks ASC",
-        )
-        .map_err(|e| ServerFnError::new(e.to_string()))?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT users.name, MIN(runs.tick_count) as best_ticks
+                 FROM runs
+                 JOIN users ON runs.user_id = users.id
+                 GROUP BY users.id
+                 ORDER BY best_ticks ASC",
+            )
+            .context("failed to prepare leaderboard query")?;
 
-    let entries = stmt
-        .query_map([], |row| {
-            Ok(LeaderboardEntry {
-                name: row.get(0)?,
-                ticks: u64::try_from(row.get::<_, i64>(1)?)
-                    .expect("Ticks should never surpass i64::MAX"),
+        let entries = stmt
+            .query_map([], |row| {
+                Ok(LeaderboardEntry {
+                    name: row.get(0)?,
+                    ticks: u64::try_from(row.get::<_, i64>(1)?)
+                        .expect("Ticks should never surpass i64::MAX"),
+                })
             })
-        })
-        .map_err(|e| ServerFnError::new(e.to_string()))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| ServerFnError::new(e.to_string()))?;
+            .context("failed to execute leaderboard query")?
+            .collect::<Result<Vec<_>, _>>()
+            .context("failed to collect leaderboard entries")?;
 
-    Ok(entries)
+        Ok(entries)
+    }
+
+    inner().map_err(|e| ServerFnError::new(format!("{e:#}")))
 }
 
 /// Home page
