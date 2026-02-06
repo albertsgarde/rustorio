@@ -13,6 +13,53 @@ use crate::{
     tick::Tick,
 };
 
+/// Location of a resource buffer in a machine.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BufferLocation {
+    /// Input buffer.
+    Input,
+    /// Output buffer.
+    Output,
+}
+
+/// Error returned when trying to change a machine's recipe while it has non-empty input or output buffers.
+#[derive(Debug)]
+pub struct MachineNotEmptyError<M> {
+    /// Returning the machine with the original recipe.
+    pub machine: M,
+    /// Name of the type of the resource in the machine's buffers.
+    pub resource_type: &'static str,
+    /// The amount of the resource in the machine's buffers.
+    pub amount: u32,
+    /// Whether the resource is in the input or the output.
+    pub location: BufferLocation,
+}
+
+impl<M> MachineNotEmptyError<M> {
+    /// Converts the error to another machine type, keeping the same resource information.
+    pub fn map_machine<F, M2>(self, f: F) -> MachineNotEmptyError<M2>
+    where
+        F: FnOnce(M) -> M2,
+    {
+        MachineNotEmptyError {
+            machine: f(self.machine),
+            resource_type: self.resource_type,
+            amount: self.amount,
+            location: self.location,
+        }
+    }
+}
+
+impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Machine is not empty: machine has {} of resource {} in its {:?} buffer",
+            self.amount, self.resource_type, self.location
+        )
+    }
+}
+
 /// Basic machine that can process recipes.
 #[derive(Debug)]
 pub struct Machine<R: Recipe> {
@@ -49,24 +96,40 @@ impl<R: RecipeEx> Machine<R> {
         &mut self.outputs
     }
 
-    fn iter_inputs(&mut self) -> impl Iterator<Item = (u32, &mut u32)> {
+    fn iter_inputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
         R::iter_inputs(&mut self.inputs)
     }
 
-    fn iter_outputs(&mut self) -> impl Iterator<Item = (u32, &mut u32)> {
+    fn iter_outputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
         R::iter_outputs(&mut self.outputs)
     }
 
     /// Changes the [`Recipe`](crate::recipe) of the machine.
     /// Returns the original machine if the machine has any inputs or outputs.
-    pub fn change_recipe<R2: RecipeEx>(mut self, recipe: R2) -> Result<Machine<R2>, Self> {
-        fn nonempty((_, current): (u32, &mut u32)) -> bool {
-            *current > 0
+    pub fn change_recipe<R2: RecipeEx>(
+        mut self,
+        recipe: R2,
+    ) -> Result<Machine<R2>, MachineNotEmptyError<Self>> {
+        let _ = recipe;
+        fn find_nonempty<'a>(
+            mut iter: impl Iterator<Item = (&'static str, u32, &'a mut u32)>,
+            location: BufferLocation,
+        ) -> Option<(&'static str, u32, BufferLocation)> {
+            iter.find_map(|(resource_name, _needed, &mut current)| {
+                (current > 0).then_some((resource_name, current, location))
+            })
         }
 
-        let _ = recipe;
-        if self.iter_inputs().any(nonempty) || self.iter_outputs().any(nonempty) {
-            Err(self)
+        if let Some((resource_type, amount, location)) =
+            find_nonempty(self.iter_inputs(), BufferLocation::Input)
+                .or_else(|| find_nonempty(self.iter_outputs(), BufferLocation::Output))
+        {
+            Err(MachineNotEmptyError {
+                machine: self,
+                resource_type,
+                amount,
+                location,
+            })
         } else {
             Ok(Machine::new_inner(self.tick))
         }
@@ -79,22 +142,22 @@ impl<R: RecipeEx> Machine<R> {
         let crafting_time = self.crafting_time;
         let count = self
             .iter_inputs()
-            .map(|(needed, current)| *current / needed)
+            .map(|(_, needed, current)| *current / needed)
             .chain((R::TIME > 0).then(|| (crafting_time / R::TIME).try_into().unwrap()))
             .min()
             .unwrap();
 
-        for (needed, current) in self.iter_inputs() {
+        for (_, needed, current) in self.iter_inputs() {
             *current -= count * needed;
         }
-        for (needed, current) in self.iter_outputs() {
+        for (_, needed, current) in self.iter_outputs() {
             *current += count * needed;
         }
         self.crafting_time -= u64::from(count) * R::TIME;
 
         if self
             .iter_inputs()
-            .any(|(needed, current)| *current < needed)
+            .any(|(_, needed, current)| *current < needed)
         {
             self.crafting_time = 0;
         }

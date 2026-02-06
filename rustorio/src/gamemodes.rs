@@ -5,27 +5,35 @@
 use rustorio_engine::{
     bundle,
     gamemodes::{GameMode, StartingResources},
+    mod_reexports::Tick,
 };
 
 use crate::{
     Bundle,
     guide::Guide,
-    research::PointsTechnology,
-    resources::{Copper, Iron, Point},
+    research::SteelTechnology,
+    resources::{Copper, CopperOre, Iron, IronOre, Point},
+    territory::Territory,
 };
 
 /// Starting resources for the tutorial game mode.
 pub struct TutorialStartingResources {
     /// Initial iron bundle.
     pub iron: Bundle<Iron, 10>,
+    /// Initial territory to mine iron ore from.
+    pub iron_territory: Territory<IronOre>,
+    /// Initial territory to mine copper ore from.
+    pub copper_territory: Territory<CopperOre>,
     /// The in-game guide that provides hints to the player.
     pub guide: Guide,
 }
 
 impl StartingResources for TutorialStartingResources {
-    fn init() -> Self {
+    fn init(tick: &Tick) -> Self {
         Self {
             iron: bundle(),
+            iron_territory: Territory::new(tick, 5),
+            copper_territory: Territory::new(tick, 5),
             guide: Guide,
         }
     }
@@ -43,14 +51,20 @@ impl GameMode for Tutorial {
 pub struct StandardStartingResources {
     /// Initial iron bundle.
     pub iron: Bundle<Iron, 10>,
-    /// The tech you must research to start creating the game winning points.
-    pub points_technology: PointsTechnology,
+    /// Initial territory rich in iron ore.
+    pub iron_territory: Territory<IronOre>,
+    /// Initial territory rich in copper ore.
+    pub copper_territory: Territory<CopperOre>,
+    /// The first technology the player can research.
+    pub steel_technology: SteelTechnology,
 }
 impl StartingResources for StandardStartingResources {
-    fn init() -> Self {
+    fn init(tick: &Tick) -> Self {
         Self {
             iron: bundle(),
-            points_technology: PointsTechnology,
+            iron_territory: Territory::new(tick, 20),
+            copper_territory: Territory::new(tick, 20),
+            steel_technology: SteelTechnology,
         }
     }
 }
@@ -60,5 +74,5 @@ pub struct Standard;
 
 impl GameMode for Standard {
     type StartingResources = StandardStartingResources;
-    type VictoryResources = Bundle<Point, 10>;
+    type VictoryResources = Bundle<Point, 200>;
 }

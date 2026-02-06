@@ -117,7 +117,7 @@ impl SetupArgs {
         }
 
         println!("Setting up Rustorio at '{}'...", canonical_path.display());
-        // Run `cargo new --bin self.name`
+        // Run `cargo new --bin self.name` with the same `cargo` binary as used to build this CLI
         Command::new(env!("CARGO"))
             .arg("new")
             .arg("--bin")
@@ -136,7 +136,7 @@ impl SetupArgs {
             .run()
             .context("Failed to add Rustorio as a dependency")?;
         fs::write(path.join("rustorio.toml"), "").context("Failed to create rustorio.toml")?;
-        fs::write(path.join("rust-toolchain"), RUST_TOOLCHAIN)
+        fs::write(path.join("rust-toolchain.toml"), RUST_TOOLCHAIN)
             .context("Failed to create rust-toolchain file")?;
         let save_path = path.join("src").join("bin");
         fs::create_dir_all(&save_path).context("Failed to create save directory")?;
@@ -164,7 +164,7 @@ pub enum GameMode {
 }
 
 impl GameMode {
-    pub fn as_str(&self) -> &str {
+    pub const fn as_str(&self) -> &str {
         match self {
             GameMode::Tutorial => "tutorial",
             GameMode::Standard => "standard",
@@ -198,9 +198,9 @@ fn find_rustorio_root() -> Result<Option<std::path::PathBuf>> {
 
 #[derive(Args)]
 pub struct NewGameArgs {
-    #[clap(default_value = "new_game")]
-    name: String,
-    #[clap(long, short, value_enum, default_value_t = GameMode::Tutorial)]
+    #[clap()]
+    name: Option<String>,
+    #[clap(long, short, value_enum, default_value_t = GameMode::Standard)]
     game_mode: GameMode,
 }
 
@@ -236,34 +236,32 @@ impl NewGameArgs {
             }
         };
         let rustorio_root = rustorio_root.as_path();
-        print!(
-            "Creating a new save with game mode {} and name '{}'...\r",
-            self.game_mode.as_str(),
-            self.name
-        );
         let saves_dir = rustorio_root.join("src").join("bin");
         fs::create_dir_all(saves_dir.as_path()).context("Failed to create saves directory")?;
         let start_file = self.game_mode.start_file();
         let (save_game_path, save_game_name) = {
-            let mut save_game_name = self.name.clone();
-            while saves_dir.join(save_game_name.as_str()).exists() {
-                save_game_name = format!("{}_", save_game_name.as_str());
+            let save_game_name = self.name.clone().unwrap_or_else(|| {
+                println!("No save game name specified, generating one based on game mode...");
+                let mut save_game_name = self.game_mode.as_str().to_string();
+                while saves_dir.join(save_game_name.as_str()).exists() {
+                    save_game_name = format!("{}_", save_game_name.as_str());
+                }
+                save_game_name
+            });
+            let save_game_path = saves_dir.join(save_game_name.as_str());
+            if save_game_path.exists() {
+                bail!("Save game '{}' already exists.", save_game_name.as_str());
             }
-            fs::create_dir(saves_dir.join(save_game_name.as_str()).as_path())
-                .context("Failed to create save game directory")?;
-            (
-                saves_dir.join(save_game_name.as_str()).join("main.rs"),
-                save_game_name,
-            )
+            (save_game_path, save_game_name)
         };
-        fs::create_dir_all(save_game_path.parent().unwrap())
-            .context("Failed to create save game directory")?;
-        fs::write(save_game_path.as_path(), start_file)
+        fs::create_dir_all(&save_game_path).context("Failed to create save game directory")?;
+        fs::write(save_game_path.join("main.rs").as_path(), start_file)
             .context("Failed to create save game file")?;
         println!(
-            "New game '{}' created at {}! For help getting started, go to https://albertsgarde.github.io/rustorio",
+            "New game '{}' with game mode '{}' created at {}! For help getting started, go to https://albertsgarde.github.io/rustorio",
             save_game_name,
-            save_game_path.parent().unwrap().display()
+            self.game_mode.as_str(),
+            save_game_path.display()
         );
         Ok(())
     }
@@ -290,7 +288,8 @@ impl PlayArgs {
         if !save_game_path.exists() {
             bail!("Save game '{}' does not exist.", self.save_name);
         }
-        Command::new(env!("CARGO"))
+        // Use a raw "cargo" to allow the toolchain file to take effect.
+        Command::new("cargo")
             .arg("run")
             .arg("--bin")
             .arg(&self.save_name)

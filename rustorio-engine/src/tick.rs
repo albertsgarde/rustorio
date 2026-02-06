@@ -4,7 +4,21 @@ use std::fmt::Display;
 /// You can advance the game using the [`advance`](Tick::advance) method or similar.
 /// Many functions and building methods require a [`Tick`] to be passed in, which allows them to update their state.
 /// If a function takes a [`&mut Tick`](Tick), then the function will take time.
-/// If a function merely takes a [`&Tick`](Tick), or no [`Tick`]s at all, it will never advance the game time.
+/// If a function merely takes a [`&Tick`](Tick), it will never advance the game time, but instead just roll forward it's internal state to match the current tick.
+///
+/// # Examples
+///
+/// Let's say we have two furnaces the we want to fill with `iron_ore` and `copper_ore` respectively, and then advance time so they can smelt the ore into ingots:
+/// ```
+/// // Add ore to the furnaces at the current tick
+/// furnace1.inputs(&tick).0 += iron_ore;
+/// furnace2.inputs(&tick).0 += copper_ore;
+/// // Advance time by 10 ticks so the furnaces can process some of the ore.
+/// tick.advance_by(10);
+/// // Now we can extract the smelted ingots from the furnaces
+/// let iron_ingots = furnace1.outputs(&tick).0.empty().unwrap();
+/// let copper_ingots = furnace2.outputs(&tick).0.empty().unwrap();
+/// ```
 #[derive(Debug)]
 pub struct Tick {
     /// The current tick number.
@@ -13,12 +27,15 @@ pub struct Tick {
 }
 
 impl Tick {
-    pub(crate) fn start() -> Self {
-        Self { tick: 0, log: true }
+    pub(crate) const fn start() -> Self {
+        Self {
+            tick: 0,
+            log: false,
+        }
     }
 
     /// Sets whether or not to log on tick advancement.
-    pub fn log(&mut self, log: bool) {
+    pub const fn log(&mut self, log: bool) {
         self.log = log;
     }
 
@@ -69,7 +86,7 @@ impl Tick {
     }
 
     /// Returns the current tick number.
-    pub fn cur(&self) -> u64 {
+    pub const fn cur(&self) -> u64 {
         self.tick
     }
 }

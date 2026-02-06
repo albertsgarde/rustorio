@@ -9,6 +9,7 @@ use crate::{
     buildings::Furnace,
     recipes::FurnaceRecipe,
     resources::{Copper, CopperOre, Iron, IronOre},
+    territory::{Miner, Territory},
 };
 
 /// A topic that the guide can provide hints about.
@@ -18,8 +19,20 @@ trait GuideTopic {
 
 impl GuideTopic for Tick {
     fn hint() -> &'static str {
-        "The `Tick` object you are given handles the passage of time in the game. You can use methods like `Tick::advance` or `Tick::advance_until` to make time pass, which is necessary for buildings to process resources. Some functions like `mine_iron` and `mine_copper` take a mutable reference to the Tick to let them advance time internally.
+        "The `Tick` object you are given handles the passage of time in the game. You can use methods like `Tick::advance` or `Tick::advance_until` to make time pass, which is necessary for buildings to process resources. Some functions that represent doing some thing \"by hand\" like `Territory::hand_mine` take a mutable reference to the Tick to let them advance time internally.
 For more information, see https://docs.rs/rustorio/latest/rustorio/struct.Tick.html"
+    }
+}
+
+impl<R: ResourceType> GuideTopic for Territory<R> {
+    fn hint() -> &'static str {
+        "Territories are where you get your basic resources. To begin with you can mine by hand using the `hand_mine` function, but you can add `Miner`s to the territory to automate mining."
+    }
+}
+
+impl GuideTopic for Miner {
+    fn hint() -> &'static str {
+        "Miners can be added to a territory to automate mining. Each miner will mine resources every few ticks, so you don't have to do it by hand. Use `Territory::resources` to get the resources mined by the miners."
     }
 }
 
@@ -32,13 +45,13 @@ Try building a Furnace using `Furnace::build`. If you're in doubt about what rec
 
 impl<R: FurnaceRecipe> GuideTopic for Furnace<R> {
     fn hint() -> &'static str {
-        "Congratulations on building your first Furnace! If you haven't already, mine some copper ore using `mine_copper`. You can add the ore to the furnace using `Furnace::add_input`. If you then use `Tick::advance` to make ticks pass, the ore will turn into ingots which can be extracted using `Furnace::take_output`."
+        "Congratulations on building your first Furnace! If you haven't already, mine some copper ore using `Territory::hand_mine`. You acces the input buffers of the furnace using `Furnace::inputs` which allows you to add ore. If you then use `Tick::advance` to make ticks pass, the ore will turn into ingots and put in the output buffer, which can be accessed using `Furnace::outputs`."
     }
 }
 
 impl GuideTopic for Resource<CopperOre> {
     fn hint() -> &'static str {
-        "Great job on mining some copper ore! Add the ore to a Furnace using `Furnace::add_input`, then advance time using `Tick::advance` to smelt the ore into copper ingots. Finally, extract the ingots using `Furnace::take_output`.
+        "Great job on mining some copper ore! Add the ore to a Furnace by adding them to `Furnace::inputs`, then advance time using `Tick::advance` to smelt the ore into copper ingots. Finally, extract the ingots from the furnace's output buffers using `Furnace::outputs`.
 
 If you don't have a Furnace yet, build one using `Furnace::build`, and use the `CopperSmelting` recipe to smelt copper ore into copper ingots."
     }
@@ -46,13 +59,13 @@ If you don't have a Furnace yet, build one using `Furnace::build`, and use the `
 
 impl GuideTopic for Resource<IronOre> {
     fn hint() -> &'static str {
-        "Good job on figuring out how to mine iron ore! You can smelt the iron ore into iron ingots using a Furnace, but you won't need to for this tutorial, instead try mining some copper ore using `mine_copper`."
+        "Good job on figuring out how to mine iron ore! You can smelt the iron ore into iron ingots using a Furnace, but you won't need to for this tutorial, instead try mining some copper ore using `Territory::hand_mine`."
     }
 }
 
 impl GuideTopic for Resource<Copper> {
     fn hint() -> &'static str {
-        "Awesome! You've made some copper ingots. To win the tutorial, you need to make 1 copper ingot. If you don't have one yet, try mining some copper ore using `mine_copper`, then smelt it into copper ingots using a Furnace."
+        "Awesome! You've made some copper ingots. To win the tutorial, you need to make 4 copper ingots. If you don't have one yet, try mining some copper ore using `Territory::hand_mine`, then smelt it into copper ingots using a Furnace."
     }
 }
 

@@ -1,0 +1,32 @@
+---
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["compose", "-f", "docker/compose.yaml", "build"]
+    env:
+      - "DATA_PATH=data/"
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["tag", "rustorio-website", "gcr.io/rustorio/rustorio-website"]
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/rustorio/rustorio-website"]
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      [
+        "run",
+        "deploy",
+        "rustorio-website",
+        "--region=europe-west4",
+        "--service-account=builder@rustorio.iam.gserviceaccount.com",
+        "--min-instances=0",
+        "--concurrency=80",
+        "--add-volume=name=data,type=cloud-storage,bucket=rustorio-data",
+        "--image=gcr.io/rustorio/rustorio-website",
+        "--port=8080",
+        "--add-volume-mount=volume=data,mount-path=/app/data",
+      ]
+    env: 
+      - "DB_PATH=/app/data/rustorio.db"
+logsBucket: "gs://rustorio-logs"
+serviceAccount: "projects/rustorio/serviceAccounts/builder@rustorio.iam.gserviceaccount.com"
+options:
+  logging: "GCS_ONLY"

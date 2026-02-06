@@ -1,49 +1,8 @@
 //! Recipes define all item transformations in the game via input items, output items, and time.
 
-use std::ops::{Deref, DerefMut};
+pub use rustorio_derive::{Recipe, RecipeEx, recipe_doc};
 
-pub use rustorio_derive::{Recipe, RecipeEx};
-
-use crate::{ResourceType, resources::Resource};
-
-/// One recipe item and its current amount inside a machine's input/output buffer.
-#[derive(Debug)]
-pub struct RecipeItem<const AMOUNT: u32, Content: ResourceType>(Resource<Content>);
-
-impl<const AMOUNT: u32, Content: ResourceType> Default for RecipeItem<AMOUNT, Content> {
-    fn default() -> Self {
-        Self(Resource::new_empty())
-    }
-}
-
-impl<const AMOUNT: u32, Content: ResourceType> Deref for RecipeItem<AMOUNT, Content> {
-    type Target = Resource<Content>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<const AMOUNT: u32, Content: ResourceType> DerefMut for RecipeItem<AMOUNT, Content> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<const AMOUNT: u32, Content: ResourceType> RecipeItem<AMOUNT, Content> {
-    /// Needed amount of the resource for one cycle of its recipe.
-    pub const fn needed_amount(&self) -> u32 {
-        AMOUNT
-    }
-}
-
-/// Get a mutable reference to the inner amount.
-/// This is not a function of `RecipeItem` to allow mods to choose to not export it to user code.
-pub fn recipe_item_amount<const AMOUNT: u32, Content: ResourceType>(
-    item: &mut RecipeItem<AMOUNT, Content>,
-) -> &mut u32 {
-    &mut item.0.amount
-}
+use crate::{Sealed, tick::Tick};
 
 /// Basic recipe trait. A building's specific recipe trait can then be defined like
 /// ```rust
@@ -86,6 +45,12 @@ pub trait Recipe {
     /// for one cycle of the recipe.
     type Outputs: std::fmt::Debug;
 
+    /// Factory function to create a new `Self::Inputs` with zero resources.
+    fn new_inputs() -> Self::Inputs;
+
+    /// Factory function to create a new `Self::Outputs` with zero resources.
+    fn new_outputs() -> Self::Outputs;
+
     /// The type for `Self::InputAmountsType`, which is used to allow users to
     /// access the input amount for each of the input resource types, per recipe cycle.
     type InputAmountsType: std::fmt::Debug;
@@ -103,15 +68,33 @@ pub trait Recipe {
 
 #[doc(hidden)]
 pub trait RecipeEx: Recipe {
-    /// Factory function to create a new `Self::Inputs` with zero resources.
-    fn new_inputs() -> Self::Inputs;
+    /// A type guaranteed to contain exactly the input resources for one recipe cycle.
+    /// Used in handcrafting.
+    type InputBundle: std::fmt::Debug;
+    /// A type guaranteed to contain exactly the output resources for one recipe cycle.
+    /// Used in handcrafting.
+    type OutputBundle: std::fmt::Debug;
 
-    /// Factory function to create a new `Self::Outputs` with zero resources.
-    fn new_outputs() -> Self::Outputs;
+    /// Factory function to create a new `Self::InputBundle`.
+    fn new_output_bundle() -> Self::OutputBundle;
 
     /// Iterator helper over `Self::Inputs`.
-    fn iter_inputs(items: &mut Self::Inputs) -> impl Iterator<Item = (u32, &mut u32)>;
+    fn iter_inputs(items: &mut Self::Inputs)
+    -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
 
     /// Iterator helper over `Self::Outputs`.
-    fn iter_outputs(items: &mut Self::Outputs) -> impl Iterator<Item = (u32, &mut u32)>;
+    fn iter_outputs(
+        items: &mut Self::Outputs,
+    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
+}
+
+/// A recipe that can be hand-crafted by the player.
+pub trait HandRecipe: std::fmt::Debug + Sealed + RecipeEx {
+    /// Crafts the recipe by consuming the input bundle and producing the output bundle.
+    /// Advances the provided `Tick` by the recipe's time.
+    fn craft(tick: &mut Tick, inputs: Self::InputBundle) -> Self::OutputBundle {
+        let _ = inputs;
+        tick.advance_by(Self::TIME);
+        Self::new_output_bundle()
+    }
 }

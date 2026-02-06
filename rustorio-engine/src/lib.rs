@@ -3,15 +3,16 @@
 #![warn(missing_docs)]
 //! The core engine for Rustorio.
 //! Only relevant if you are writing a mod for Rustorio.
-//! To play the game, depend on the `rustorio` crate instead.
+//! A save file depending on this crate has access to some APIs that make it trivial to cheat, which can be great for testing and debugging, but removes the challenge.
+//! To play the game, depend on the [`rustorio`](https://crates.io/crates/rustorio) crate instead.
 //!
-//! For more information, see the [repo](https://github.com/albertsgarde/rustorio)
+//! For more information, see the [repo](https://github.com/albertsgarde/rustorio).
 
 pub mod gamemodes;
 pub mod machine;
 pub mod recipe;
 pub mod research;
-mod resources;
+pub mod resources;
 mod tick;
 
 use std::sync::Once;
@@ -34,7 +35,7 @@ pub fn play<G: GameMode>(main: fn(Tick, G::StartingResources) -> (Tick, G::Victo
         );
     }
     let tick = Tick::start();
-    let start_resources = G::StartingResources::init();
+    let start_resources = G::StartingResources::init(&tick);
     let (tick, _points) = main(tick, start_resources);
     println!("You won in {} ticks!", tick.cur());
     std::process::exit(0);
@@ -54,9 +55,9 @@ pub mod mod_reexports {
     pub use crate::{
         gamemodes::GameMode,
         play,
-        recipe::Recipe,
-        research::{RedScience, Technology},
-        resources::{Bundle, InsufficientResourceError, Resource},
+        recipe::{HandRecipe, Recipe},
+        research::{ResearchPoint, Technology},
+        resources::{Bundle, InsufficientResourceError, Resource, ResourceType},
         tick::Tick,
     };
 }

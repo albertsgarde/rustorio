@@ -6,24 +6,66 @@
 //!
 //! This module defines the technologies available in Rustorio.
 
-use rustorio_engine::research::{RedScience, Technology};
+use rustorio_engine::{
+    Sealed,
+    research::{ResearchPoint, Technology, TechnologyEx, technology_doc},
+    resource_type,
+};
 
-use crate::{Bundle, recipes::PointRecipe};
+use crate::{
+    Bundle,
+    recipes::{PointRecipe, SteelSmelting},
+};
 
-/// Technology that unlocks the ability to produce points.
+resource_type!(
+    /// The basic science pack used for researching technologies in [`Lab`](crate::buildings::Lab)s.
+    ///
+    /// Crafted from [this](crate::recipes::RedScienceRecipe) recipe.
+    RedScience
+);
+
+/// Allows the further refining of iron into steel.
+#[technology_doc]
+#[derive(Debug, TechnologyEx)]
+#[research_inputs((1, RedScience))]
+#[research_point_cost(20)]
+#[research_ticks(5)]
+#[non_exhaustive]
+pub struct SteelTechnology;
+impl Sealed for SteelTechnology {}
+
+impl Technology for SteelTechnology {
+    const NAME: &'static str = "Steel";
+    type Unlocks = (SteelSmelting, PointsTechnology);
+
+    fn research(
+        self,
+        research_points: Bundle<ResearchPoint<Self>, { Self::REQUIRED_RESEARCH_POINTS }>,
+    ) -> Self::Unlocks {
+        let _ = research_points;
+        (SteelSmelting, PointsTechnology)
+    }
+}
+
+/// Unlocks the ability to produce points.
+#[technology_doc]
+#[derive(Debug, TechnologyEx)]
+#[research_inputs((1, RedScience))]
+#[research_point_cost(50)]
+#[research_ticks(5)]
 #[non_exhaustive]
 pub struct PointsTechnology;
-impl rustorio_engine::Sealed for PointsTechnology {}
+impl Sealed for PointsTechnology {}
 
 impl Technology for PointsTechnology {
-    const RED_SCIENCE_COST: u32 = 5;
+    const NAME: &'static str = "Points";
     type Unlocks = PointRecipe;
 
     fn research(
         self,
-        red_science: Bundle<RedScience, { Self::RED_SCIENCE_COST }>,
+        research_points: Bundle<ResearchPoint<Self>, { Self::REQUIRED_RESEARCH_POINTS }>,
     ) -> Self::Unlocks {
-        let _ = red_science;
+        let _ = research_points;
         PointRecipe {}
     }
 }
