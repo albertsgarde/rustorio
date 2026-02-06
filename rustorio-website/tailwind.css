@@ -1,1 +1,8 @@
 @import "tailwindcss";
+@source "./src/**/*.{rs,html,css}";
+
+/* Base styling - must be outside @layer to override Tailwind preflight */
+body {
+    background-color: #0f1116;
+    color: #ffffff;
+}
