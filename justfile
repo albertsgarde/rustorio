@@ -33,6 +33,9 @@ pull:
 publish:
     cargo publish
 
+serve:
+    dx serve --package rustorio-website
+
 build-docker:
     docker build . -f docker/website2.dockerfile -t rustorio-website
 
