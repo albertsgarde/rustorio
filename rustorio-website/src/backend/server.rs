@@ -1,9 +1,9 @@
-use anyhow::Context;
 use clap::Parser;
+use sqlx::SqlitePool;
 
 use crate::App;
 
-static DB_PATH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+static DB: std::sync::OnceLock<SqlitePool> = std::sync::OnceLock::new();
 
 #[derive(Parser)]
 pub struct Args {
@@ -14,60 +14,62 @@ pub struct Args {
 
 pub fn init() {
     let args = Args::parse();
-    set_db_path(args.db_path);
-    init_db().expect("Failed to initialize database");
+
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+    rt.block_on(async {
+        let pool = SqlitePool::connect(&format!("sqlite:{}?mode=rwc", args.db_path))
+            .await
+            .expect("Failed to connect to database");
+        init_db(&pool).await.expect("Failed to initialize database");
+        DB.set(pool).expect("DB already set");
+    });
+
     dioxus::launch(App);
 }
 
-pub fn set_db_path(path: String) {
-    DB_PATH.set(path).expect("DB_PATH already set");
+pub fn db() -> &'static SqlitePool {
+    DB.get().expect("DB not initialized")
 }
 
-pub fn get_db() -> anyhow::Result<rusqlite::Connection> {
-    let path = DB_PATH.get().context("DB_PATH not initialized")?;
-    rusqlite::Connection::open(path).context("failed to open database connection")
-}
-
-pub fn init_db() -> anyhow::Result<()> {
-    let conn = get_db().context("failed to get database connection")?;
-
-    conn.execute(
+async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
+    sqlx::query(
         "CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE
         )",
-        [],
     )
-    .context("failed to create users table")?;
+    .execute(pool)
+    .await?;
 
-    conn.execute(
+    sqlx::query(
         "CREATE TABLE IF NOT EXISTS runs (
             run_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             tick_count INTEGER NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )",
-        [],
     )
-    .context("failed to create runs table")?;
+    .execute(pool)
+    .await?;
 
     // Insert sample data if tables are empty
-    let count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM users", [], |row| row.get(0))
-        .context("failed to count users")?;
-    if count == 0 {
-        conn.execute(
+    let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users")
+        .fetch_one(pool)
+        .await?;
+
+    if count.0 == 0 {
+        sqlx::query(
             "INSERT INTO users (name) VALUES
                 ('SpeedRunner42'),
                 ('FactorioMaster'),
                 ('OptimalPath'),
                 ('RocketScience'),
                 ('NewPlayer')",
-            [],
         )
-        .context("failed to insert sample users")?;
+        .execute(pool)
+        .await?;
 
-        conn.execute(
+        sqlx::query(
             "INSERT INTO runs (user_id, tick_count) VALUES
                 (1, 12543),
                 (1, 14000),
@@ -76,9 +78,9 @@ pub fn init_db() -> anyhow::Result<()> {
                 (3, 18902),
                 (4, 21445),
                 (5, 45678)",
-            [],
         )
-        .context("failed to insert sample runs")?;
+        .execute(pool)
+        .await?;
     }
 
     Ok(())
