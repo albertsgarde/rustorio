@@ -1,4 +1,6 @@
 #[cfg(feature = "server")]
+mod api;
+#[cfg(feature = "server")]
 pub mod server;
 
 use dioxus::prelude::*;
@@ -15,10 +17,9 @@ pub struct LeaderboardEntry {
 #[server]
 pub async fn get_leaderboard() -> Result<Vec<LeaderboardEntry>, ServerFnError> {
     let entries: Vec<LeaderboardEntry> = sqlx::query_as(
-        "SELECT users.name, MIN(runs.tick_count) as ticks
+        "SELECT name, MIN(tick_count) as ticks
          FROM runs
-         JOIN users ON runs.user_id = users.id
-         GROUP BY users.id
+         GROUP BY name
          ORDER BY ticks ASC",
     )
     .fetch_all(server::db())

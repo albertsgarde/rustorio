@@ -1,7 +1,7 @@
 use clap::Parser;
 use sqlx::SqlitePool;
 
-use crate::App;
+use crate::{App, backend::api};
 
 static DB: std::sync::OnceLock<SqlitePool> = std::sync::OnceLock::new();
 
@@ -24,7 +24,11 @@ pub fn init() {
         DB.set(pool).expect("DB already set");
     });
 
-    dioxus::launch(App);
+    dioxus::serve(|| async move {
+        let router = dioxus::server::router(App).nest("/api/v1", api::router());
+
+        Ok(router)
+    })
 }
 
 pub fn db() -> &'static SqlitePool {
@@ -33,51 +37,30 @@ pub fn db() -> &'static SqlitePool {
 
 async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
     sqlx::query(
-        "CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
-        )",
-    )
-    .execute(pool)
-    .await?;
-
-    sqlx::query(
         "CREATE TABLE IF NOT EXISTS runs (
             run_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            tick_count INTEGER NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            name TEXT NOT NULL,
+            tick_count INTEGER NOT NULL
         )",
     )
     .execute(pool)
     .await?;
 
-    // Insert sample data if tables are empty
-    let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users")
+    // Insert sample data if table is empty
+    let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM runs")
         .fetch_one(pool)
         .await?;
 
     if count.0 == 0 {
         sqlx::query(
-            "INSERT INTO users (name) VALUES
-                ('SpeedRunner42'),
-                ('FactorioMaster'),
-                ('OptimalPath'),
-                ('RocketScience'),
-                ('NewPlayer')",
-        )
-        .execute(pool)
-        .await?;
-
-        sqlx::query(
-            "INSERT INTO runs (user_id, tick_count) VALUES
-                (1, 12543),
-                (1, 14000),
-                (2, 15221),
-                (2, 18000),
-                (3, 18902),
-                (4, 21445),
-                (5, 45678)",
+            "INSERT INTO runs (name, tick_count) VALUES
+                ('SpeedRunner42', 12543),
+                ('SpeedRunner42', 14000),
+                ('FactorioMaster', 15221),
+                ('FactorioMaster', 18000),
+                ('OptimalPath', 18902),
+                ('RocketScience', 21445),
+                ('NewPlayer', 45678)",
         )
         .execute(pool)
         .await?;
