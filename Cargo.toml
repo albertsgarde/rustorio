@@ -1,5 +1,11 @@
 [workspace]
-members = ["rustorio-derive", "rustorio-engine", "rustorio", "rustorio-website"]
+members = [
+    "rustorio-derive",
+    "rustorio-engine",
+    "rustorio",
+    "rustorio-website",
+    "rustorio-cli",
+]
 exclude = []
 resolver = "3"
 

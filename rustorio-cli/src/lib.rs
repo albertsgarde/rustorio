@@ -2,7 +2,7 @@ use std::{
     fmt::Display,
     fs, io,
     path::{Path, PathBuf},
-    process::{Command, ExitStatus},
+    process::{Command, ExitStatus, Termination},
 };
 
 use anyhow::{Context, Result, bail};
@@ -15,7 +15,7 @@ macro_rules! game_bin_file {
     ($gamemode:expr) => {
         concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/examples/",
+            "/assets/examples/",
             $gamemode,
             "_new_game.rs"
         )
@@ -300,7 +300,7 @@ impl PlayArgs {
     }
 }
 
-pub fn main() -> Result<()> {
+pub fn main() {
     let cli = Cli::parse();
-    cli.run()
+    cli.run().report();
 }

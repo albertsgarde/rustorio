@@ -4507,10 +4507,17 @@ dependencies = [
 name = "rustorio"
 version = "0.1.2"
 dependencies = [
+ "rustorio-cli",
+ "rustorio-engine",
+]
+
+[[package]]
+name = "rustorio-cli"
+version = "0.1.2"
+dependencies = [
  "anyhow",
  "clap",
  "dialoguer",
- "rustorio-engine",
  "thiserror 2.0.18",
 ]
 
