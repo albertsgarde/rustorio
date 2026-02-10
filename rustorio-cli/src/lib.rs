@@ -1,3 +1,6 @@
+mod config;
+mod submit;
+
 use std::{
     fmt::Display,
     fs, io,
@@ -9,6 +12,8 @@ use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use dialoguer::Confirm;
 use thiserror::Error;
+
+use crate::{config::Config, submit::SubmitArgs};
 
 // Macro to build paths to game bin files relative to workspace root
 macro_rules! game_bin_file {
@@ -22,8 +27,10 @@ macro_rules! game_bin_file {
     };
 }
 
-const RUST_TOOLCHAIN: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/rust-toolchain.toml"));
+const RUST_TOOLCHAIN: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/rust-toolchain.toml"
+));
 
 #[derive(Error, Debug)]
 pub enum RunCommandError {
@@ -66,9 +73,10 @@ struct Cli {
 impl Cli {
     pub fn run(&self) -> Result<()> {
         match &self.command {
-            Commands::Setup(args) => args.run(),
+            Commands::Setup(args) => args.run().map(|_| ()),
             Commands::NewGame(args) => args.run(),
             Commands::Play(args) => args.run(),
+            Commands::Submit(args) => args.run(),
         }
     }
 }
@@ -85,6 +93,30 @@ enum Commands {
     /// For example, in most Rustorio folders, there'll be a `tutorial` save game.
     /// To run it, use `rustorio play tutorial`.
     Play(PlayArgs),
+    Submit(SubmitArgs),
+}
+
+struct ProjectInfo {
+    pub root_path: PathBuf,
+    pub config: Config,
+}
+
+impl ProjectInfo {
+    fn get() -> Result<Option<Self>> {
+        let mut current_dir = Path::new(".")
+            .canonicalize()
+            .context("Failed to canonicalize current directory")?;
+        let root_path = loop {
+            if current_dir.join("rustorio.toml").exists() {
+                break current_dir;
+            }
+            if !current_dir.pop() {
+                return Ok(None);
+            }
+        };
+        let config = Config::load(root_path.as_path()).context("Failed to load config")?;
+        Ok(Some(Self { root_path, config }))
+    }
 }
 
 #[derive(Args)]
@@ -96,7 +128,7 @@ pub struct SetupArgs {
 }
 
 impl SetupArgs {
-    pub fn run(&self) -> Result<()> {
+    fn run(&self) -> Result<ProjectInfo> {
         if !self.path.exists() {
             bail!(
                 "The specified path '{}' does not exist.",
@@ -135,7 +167,10 @@ impl SetupArgs {
             .current_dir(&path)
             .run()
             .context("Failed to add Rustorio as a dependency")?;
-        fs::write(path.join("rustorio.toml"), "").context("Failed to create rustorio.toml")?;
+        let config = Config::default();
+        config
+            .save(path.as_path())
+            .context("Failed to create config file `rustorio.toml`")?;
         fs::write(path.join("rust-toolchain.toml"), RUST_TOOLCHAIN)
             .context("Failed to create rust-toolchain file")?;
         let save_path = path.join("src").join("bin");
@@ -153,7 +188,10 @@ impl SetupArgs {
             "Rustorio set up at '{}'! Open the directory in your favorite Rust editor to get started.",
             path.display()
         );
-        Ok(())
+        Ok(ProjectInfo {
+            root_path: path,
+            config,
+        })
     }
 }
 
@@ -181,21 +219,6 @@ impl GameMode {
     }
 }
 
-fn find_rustorio_root() -> Result<Option<std::path::PathBuf>> {
-    let mut current_dir = Path::new(".")
-        .canonicalize()
-        .context("Failed to canonicalize current directory")?;
-    loop {
-        if current_dir.join("rustorio.toml").exists() {
-            return Ok(Some(current_dir));
-        }
-        if !current_dir.pop() {
-            break;
-        }
-    }
-    Ok(None)
-}
-
 #[derive(Args)]
 pub struct NewGameArgs {
     #[clap()]
@@ -206,10 +229,10 @@ pub struct NewGameArgs {
 
 impl NewGameArgs {
     pub fn run(&self) -> Result<()> {
-        let rustorio_root = match find_rustorio_root()
-            .context("Failed while looking for Rustorio root")?
+        let project_info = match ProjectInfo::get()
+            .context("Failed while looking for Rustorio root.")?
         {
-            Some(path) => path,
+            Some(project_info) => project_info,
             None => {
                 let setup_rustorio = Confirm::new()
                     .with_prompt(
@@ -224,10 +247,7 @@ impl NewGameArgs {
                     };
                     setup_args
                         .run()
-                        .context("Failed while running command to set up Rustorio")?;
-                    Path::new("rustorio")
-                        .canonicalize()
-                        .context("Failed to canonicalize Rustorio path")?
+                        .context("Failed while running command to set up Rustorio")?
                 } else {
                     bail!(
                         "Can only run command in a Rustorio project. Please run 'rustorio setup' first."
@@ -235,7 +255,7 @@ impl NewGameArgs {
                 }
             }
         };
-        let rustorio_root = rustorio_root.as_path();
+        let rustorio_root = project_info.root_path.as_path();
         let saves_dir = rustorio_root.join("src").join("bin");
         fs::create_dir_all(saves_dir.as_path()).context("Failed to create saves directory")?;
         let start_file = self.game_mode.start_file();
@@ -275,16 +295,13 @@ pub struct PlayArgs {
 
 impl PlayArgs {
     pub fn run(&self) -> Result<()> {
-        let rustorio_root = if let Some(rustorio_root) =
-            find_rustorio_root().context("Failed while looking for Rustorio root")?
-        {
-            rustorio_root
-        } else {
-            bail!(
-                "Can only run command in a Rustorio project. Please either navigate to a Rustorio project or run 'rustorio setup' first."
-            );
-        };
-        let save_game_path = rustorio_root.join("src").join("bin").join(&self.save_name);
+        let project_info = ProjectInfo::get().context("Failed to get project project info")?
+                .context("Can only run command in a Rustorio project. Please either navigate to a Rustorio project or run 'rustorio setup' first.")?;
+        let save_game_path = project_info
+            .root_path
+            .join("src")
+            .join("bin")
+            .join(&self.save_name);
         if !save_game_path.exists() {
             bail!("Save game '{}' does not exist.", self.save_name);
         }
@@ -293,7 +310,7 @@ impl PlayArgs {
             .arg("run")
             .arg("--bin")
             .arg(&self.save_name)
-            .current_dir(rustorio_root)
+            .current_dir(project_info.root_path)
             .run()
             .context("Failed to run Rustorio game")?;
         Ok(())

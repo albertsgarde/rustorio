@@ -11,10 +11,14 @@ you can write the program so it compiles and doesn't panic, you win!"""
 include = ["Cargo.toml", "src", "assets/examples/*", "rust-toolchain.toml"]
 
 [dependencies]
-anyhow = { version = "1.0.100" }
-clap = { version = "4.5.53", features = ["derive"] }
-dialoguer = { version = "0.12.0" }
-thiserror = { version = "2.0.17" }
+rustorio-common = { path = "../rustorio-common", version = "*" }
+anyhow.workspace = true
+clap.workspace = true
+dialoguer.workspace = true
+reqwest.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+toml.workspace = true
 
 [lints]
 workspace = true

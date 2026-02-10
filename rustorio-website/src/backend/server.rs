@@ -25,7 +25,8 @@ pub fn init() {
     });
 
     dioxus::serve(|| async move {
-        let router = dioxus::server::router(App).nest("/api/v1", api::router());
+        let router =
+            dioxus::server::router(App).nest(rustorio_common::BASE_API_PATH, api::router());
 
         Ok(router)
     })

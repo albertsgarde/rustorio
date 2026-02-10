@@ -6,14 +6,16 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
+rustorio-common = { path = "../rustorio-common", version = "*" }
 dioxus = { version = "0.7.3", features = ["router", "fullstack"] }
-serde = { version = "1", features = ["derive"] }
-clap = { version = "4", features = ["derive"], optional = true }
-anyhow = { version = "1.0.101", optional = true }
+serde = { workspace = true, features = ["derive"] }
+clap = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
 sqlx = { version = "0.8.6", features = [
     "sqlite",
     "runtime-tokio",
 ], optional = true }
+log = { workspace = true, optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1", features = ["sync"] }
@@ -23,4 +25,4 @@ default = ["web"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
-server = ["dioxus/server", "clap", "anyhow", "dep:sqlx"]
+server = ["dioxus/server", "clap", "anyhow", "dep:sqlx", "log"]
