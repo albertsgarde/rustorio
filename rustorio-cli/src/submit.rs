@@ -48,6 +48,7 @@ impl SubmitArgs {
 
         let request = SubmitRunRequest {
             name: username.to_string(),
+            gamemode: play_output.gamemode,
             tick_count: play_output.ticks,
         };
 
@@ -56,6 +57,7 @@ impl SubmitArgs {
             rustorio_common::BASE_API_PATH,
             url = project_info.config.rustorio_url,
         );
+
         let response = Client::new()
             .post(&url)
             .json(&request)
@@ -65,6 +67,8 @@ impl SubmitArgs {
         response
             .error_for_status()
             .with_context(|| format!("Request to url `{url}` failed"))?;
+
+        println!("Run submitted to leaderboard.");
 
         Ok(())
     }

@@ -8,8 +8,9 @@ pub fn router() -> Router {
 }
 
 async fn submit_run(Json(body): Json<SubmitRunRequest>) -> impl IntoResponse {
-    match sqlx::query("INSERT INTO runs (name, tick_count) VALUES ($1, $2)")
+    match sqlx::query("INSERT INTO runs (name, gamemode, tick_count) VALUES ($1, $2, $3)")
         .bind(&body.name)
+        .bind(body.gamemode)
         .bind(body.tick_count as i64)
         .execute(db())
         .await

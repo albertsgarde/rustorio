@@ -41,6 +41,7 @@ async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
         "CREATE TABLE IF NOT EXISTS runs (
             run_id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            gamemode TEXT NOT NULL,
             tick_count INTEGER NOT NULL
         )",
     )
@@ -54,14 +55,14 @@ async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
 
     if count.0 == 0 {
         sqlx::query(
-            "INSERT INTO runs (name, tick_count) VALUES
-                ('SpeedRunner42', 12543),
-                ('SpeedRunner42', 14000),
-                ('FactorioMaster', 15221),
-                ('FactorioMaster', 18000),
-                ('OptimalPath', 18902),
-                ('RocketScience', 21445),
-                ('NewPlayer', 45678)",
+            "INSERT INTO runs (name, gamemode, tick_count) VALUES
+                ('SpeedRunner42', 'tutorial', 12543),
+                ('SpeedRunner42', 'tutorial', 14000),
+                ('FactorioMaster', 'tutorial', 15221),
+                ('FactorioMaster', 'tutorial', 18000),
+                ('OptimalPath', 'tutorial', 18902),
+                ('RocketScience', 'tutorial', 21445),
+                ('NewPlayer', 'tutorial', 45678)",
         )
         .execute(pool)
         .await?;

@@ -10,6 +10,7 @@ pub const BASE_API_PATH: &str = "/api/v1";
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SubmitRunRequest {
     pub name: String,
+    pub gamemode: String,
     pub tick_count: u64,
 }
 

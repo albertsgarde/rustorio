@@ -41,11 +41,21 @@ pub fn play<G: GameMode>(main: fn(Tick, G::StartingResources) -> (Tick, G::Victo
     let (tick, _points) = main(tick, start_resources);
     if let Ok(port) = std::env::var(PORT_ENV_NAME) {
         let port = port.parse().unwrap_or_else(|error| panic!("Failed to pass env variable '{PORT_ENV_NAME}' as port. Env var value: '{port}'  Error: {error:?}"));
-        let play_output = PlayOutput { ticks: tick.cur() };
+        let play_output = PlayOutput {
+            ticks: tick.cur(),
+            gamemode: G::NAME.to_owned(),
+        };
         let mut stream = TcpStream::connect(("127.0.0.1", port)).unwrap_or_else(|error| {
             panic!("Failed to connect to parent process. Error: {error:?}")
         });
-        write!(stream, "{}", play_output.serialize()).unwrap()
+        write!(
+            stream,
+            "{}",
+            play_output.serialize().unwrap_or_else(|error| format!(
+                "Failed to serialize play output `{play_output:?}`. Error: {error:?}"
+            ))
+        )
+        .unwrap()
     }
 
     println!("You won in {} ticks!", tick.cur());

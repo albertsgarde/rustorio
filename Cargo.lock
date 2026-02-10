@@ -4669,6 +4669,7 @@ name = "rustorio-common"
 version = "0.1.2"
 dependencies = [
  "serde",
+ "serde_json",
  "thiserror 2.0.18",
 ]
 

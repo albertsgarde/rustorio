@@ -45,6 +45,8 @@ pub struct Tutorial;
 impl GameMode for Tutorial {
     type StartingResources = TutorialStartingResources;
     type VictoryResources = Bundle<Copper, 4>;
+
+    const NAME: &str = "tutorial";
 }
 
 /// Starting resources for the standard game mode. Includes 10 iron and the ability to research points.
@@ -75,4 +77,6 @@ pub struct Standard;
 impl GameMode for Standard {
     type StartingResources = StandardStartingResources;
     type VictoryResources = Bundle<Point, 200>;
+
+    const NAME: &str = "standard";
 }
