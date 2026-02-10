@@ -1,3 +1,5 @@
+pub mod cli;
+
 use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};

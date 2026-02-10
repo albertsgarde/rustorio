@@ -15,7 +15,9 @@ pub mod research;
 pub mod resources;
 mod tick;
 
-use std::sync::Once;
+use std::{io::Write, net::TcpStream, sync::Once};
+
+use rustorio_common::cli::{PORT_ENV_NAME, PlayOutput};
 
 pub use crate::resources::{ResourceType, bundle, resource};
 use crate::{
@@ -37,6 +39,15 @@ pub fn play<G: GameMode>(main: fn(Tick, G::StartingResources) -> (Tick, G::Victo
     let tick = Tick::start();
     let start_resources = G::StartingResources::init(&tick);
     let (tick, _points) = main(tick, start_resources);
+    if let Ok(port) = std::env::var(PORT_ENV_NAME) {
+        let port = port.parse().unwrap_or_else(|error| panic!("Failed to pass env variable '{PORT_ENV_NAME}' as port. Env var value: '{port}'  Error: {error:?}"));
+        let play_output = PlayOutput { ticks: tick.cur() };
+        let mut stream = TcpStream::connect(("127.0.0.1", port)).unwrap_or_else(|error| {
+            panic!("Failed to connect to parent process. Error: {error:?}")
+        });
+        write!(stream, "{}", play_output.serialize()).unwrap()
+    }
+
     println!("You won in {} ticks!", tick.cur());
     std::process::exit(0);
 }

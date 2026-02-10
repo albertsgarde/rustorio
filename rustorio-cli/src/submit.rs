@@ -8,13 +8,21 @@ use crate::ProjectInfo;
 #[derive(Args)]
 pub struct SubmitArgs {
     #[clap()]
-    ticks: u64,
+    save_name: String,
 }
 
 impl SubmitArgs {
     pub fn run(&self) -> Result<()> {
-        let ProjectInfo {root_path, mut config} = ProjectInfo::get().context("Failed to get project project info")?
+        let mut project_info = ProjectInfo::get().context("Failed to get project project info")?
                 .context("Can only run command in a Rustorio project. Please either navigate to a Rustorio project or run 'rustorio setup' first.")?;
+
+        let SubmitArgs { save_name } = self;
+
+        let play_output = crate::play(&project_info, save_name).with_context(|| {
+            format!("Failed to get play output for save with name '{save_name}'")
+        })?;
+
+        let ProjectInfo { root_path, config } = &mut project_info;
 
         let username = if let Some(username) = &config.username {
             username
@@ -32,19 +40,21 @@ impl SubmitArgs {
                     "Username '{username}' saved to config at `rustorio.toml`. You can edit it there at any time."
                 );
             }
-            config.username.as_ref().unwrap()
+            config
+                .username
+                .as_ref()
+                .expect("config username was just filled")
         };
 
-        let SubmitArgs { ticks } = self;
         let request = SubmitRunRequest {
             name: username.to_string(),
-            tick_count: *ticks,
+            tick_count: play_output.ticks,
         };
 
         let url = format!(
             "{url}{}/runs",
             rustorio_common::BASE_API_PATH,
-            url = config.rustorio_url,
+            url = project_info.config.rustorio_url,
         );
         let response = Client::new()
             .post(&url)

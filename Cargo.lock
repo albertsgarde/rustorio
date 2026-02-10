@@ -4686,6 +4686,7 @@ dependencies = [
 name = "rustorio-engine"
 version = "0.1.2"
 dependencies = [
+ "rustorio-common",
  "rustorio-derive",
 ]
 

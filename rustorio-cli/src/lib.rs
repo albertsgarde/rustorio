@@ -3,7 +3,9 @@ mod submit;
 
 use std::{
     fmt::Display,
-    fs, io,
+    fs,
+    io::{self, Read},
+    net::TcpListener,
     path::{Path, PathBuf},
     process::{Command, ExitStatus, Termination},
 };
@@ -11,6 +13,7 @@ use std::{
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use dialoguer::Confirm;
+use rustorio_common::cli::{PORT_ENV_NAME, PlayOutput};
 use thiserror::Error;
 
 use crate::{config::Config, submit::SubmitArgs};
@@ -287,6 +290,48 @@ impl NewGameArgs {
     }
 }
 
+fn play(project_info: &ProjectInfo, save_name: &str) -> Result<PlayOutput> {
+    let save_game_path = project_info
+        .root_path
+        .join("src")
+        .join("bin")
+        .join(save_name);
+    if !save_game_path.exists() || !save_game_path.is_dir() {
+        bail!("Save game '{save_name}' does not exist.");
+    }
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+
+    // Use a raw "cargo" to allow the toolchain file to take effect.
+    let mut child_handle = Command::new("cargo")
+        .arg("run")
+        .arg("--bin")
+        .arg(save_name)
+        .env(PORT_ENV_NAME, format!("{port}"))
+        .current_dir(project_info.root_path.as_path())
+        .spawn()
+        .context("Failed to spawn Rustorio game")?;
+
+    let (mut stream, _) = listener.accept().unwrap();
+    let mut output_buffer = String::new();
+    stream.read_to_string(&mut output_buffer).unwrap();
+
+    let exit_status = child_handle
+        .wait()
+        .context("Failed to wait for Rustorio game")?;
+    if exit_status.code() != Some(0) {
+        bail!(
+            "Unexpected status code {:?} from Rustorio process",
+            exit_status.code()
+        )
+    }
+
+    output_buffer.parse().with_context(|| {
+        format!("Failed to parse output from Rustorio process. Output: {output_buffer}")
+    })
+}
+
 #[derive(Args)]
 pub struct PlayArgs {
     /// The name of the save game to run.
@@ -297,23 +342,7 @@ impl PlayArgs {
     pub fn run(&self) -> Result<()> {
         let project_info = ProjectInfo::get().context("Failed to get project project info")?
                 .context("Can only run command in a Rustorio project. Please either navigate to a Rustorio project or run 'rustorio setup' first.")?;
-        let save_game_path = project_info
-            .root_path
-            .join("src")
-            .join("bin")
-            .join(&self.save_name);
-        if !save_game_path.exists() {
-            bail!("Save game '{}' does not exist.", self.save_name);
-        }
-        // Use a raw "cargo" to allow the toolchain file to take effect.
-        Command::new("cargo")
-            .arg("run")
-            .arg("--bin")
-            .arg(&self.save_name)
-            .current_dir(project_info.root_path)
-            .run()
-            .context("Failed to run Rustorio game")?;
-        Ok(())
+        play(&project_info, &self.save_name).map(|_| ())
     }
 }
 
