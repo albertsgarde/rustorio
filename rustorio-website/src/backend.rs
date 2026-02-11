@@ -15,16 +15,29 @@ pub struct LeaderboardEntry {
 }
 
 #[server]
-pub async fn get_leaderboard() -> Result<Vec<LeaderboardEntry>, ServerFnError> {
+pub async fn get_leaderboard(gamemode: String) -> Result<Vec<LeaderboardEntry>, ServerFnError> {
     let entries: Vec<LeaderboardEntry> = sqlx::query_as(
         "SELECT name, MIN(tick_count) as ticks
          FROM runs
+         WHERE gamemode = $1
          GROUP BY name
          ORDER BY ticks ASC",
     )
+    .bind(gamemode)
     .fetch_all(server::db())
     .await
     .map_err(|e| ServerFnError::new(format!("{e:#}")))?;
 
     Ok(entries)
+}
+
+#[server]
+pub async fn get_gamemodes() -> Result<Vec<String>, ServerFnError> {
+    sqlx::query_scalar(
+        "SELECT DISTINCT gamemode
+         FROM runs",
+    )
+    .fetch_all(server::db())
+    .await
+    .map_err(|e| ServerFnError::new(format!("{e:#}")))
 }

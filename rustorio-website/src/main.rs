@@ -1,14 +1,14 @@
 mod backend;
 
-use backend::get_leaderboard;
+use backend::{get_gamemodes, get_leaderboard};
 use dioxus::prelude::*;
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
     #[layout(Navbar)]
-    #[route("/")]
-    Home {},
+    #[route("/?:gamemode")]
+    Home { gamemode: String },
 }
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -33,12 +33,43 @@ fn App() -> Element {
 
 /// Home page
 #[component]
-fn Home() -> Element {
-    let entries = use_server_future(get_leaderboard)?;
+fn Home(gamemode: String) -> Element {
+    let nav = use_navigator();
+    let gamemodes = use_server_future(get_gamemodes)?;
+    let selected_gamemode = if gamemode.is_empty() {
+        "tutorial".to_string()
+    } else {
+        gamemode
+    };
+
+    let cloned_gamemode = selected_gamemode.clone();
+    let entries = use_server_future(move || {
+        let gamemode = cloned_gamemode.clone();
+        async move { get_leaderboard(gamemode).await }
+    })?;
 
     rsx! {
         div { class: "container mx-auto p-4",
             h1 { class: "text-2xl font-bold mb-4", "Leaderboard" }
+            match gamemodes() {
+                Some(Ok(modes)) => rsx! {
+                    select {
+                        class: "mb-4 p-2 border rounded",
+                        onchange: move |e: Event<FormData>| {
+                            nav.push(Route::Home { gamemode: e.value() });
+                        },
+                        for mode in modes {
+                            option { value: "{mode}", selected: selected_gamemode == mode, "{mode}" }
+                        }
+                    }
+                },
+                Some(Err(e)) => rsx! {
+                    p { class: "text-red-500", "Error loading gamemodes: {e}" }
+                },
+                None => rsx! {
+                    p { "Loading gamemodes..." }
+                },
+            }
             match entries() {
                 Some(Ok(entries)) => rsx! {
                     table { class: "w-full border-collapse",
