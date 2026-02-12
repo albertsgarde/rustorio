@@ -15,8 +15,8 @@ documentation = "https://docs.rs/rustorio"
 workspace = true
 
 [dependencies]
-rustorio-engine = { path = "../rustorio-engine", version = "*" }
-rustorio-cli = { path = "../rustorio-cli", version = "*" }
+rustorio-engine = { path = "../rustorio-engine", version = "0.1.2" }
+rustorio-cli = { path = "../rustorio-cli", version = "0.1.2" }
 
 [[bin]]
 name = "rustorio"

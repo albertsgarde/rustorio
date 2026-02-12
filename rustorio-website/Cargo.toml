@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-rustorio-common = { path = "../rustorio-common", version = "*" }
+rustorio-common = { path = "../rustorio-common", version = "0.1.2" }
 dioxus = { version = "0.7.3", features = ["router", "fullstack"] }
 serde = { workspace = true, features = ["derive"] }
 clap = { workspace = true, optional = true }

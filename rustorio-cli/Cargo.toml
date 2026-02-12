@@ -11,7 +11,7 @@ you can write the program so it compiles and doesn't panic, you win!"""
 include = ["Cargo.toml", "src", "assets/examples/*", "rust-toolchain.toml"]
 
 [dependencies]
-rustorio-common = { path = "../rustorio-common", version = "*" }
+rustorio-common = { path = "../rustorio-common", version = "0.1.2" }
 anyhow.workspace = true
 clap.workspace = true
 dialoguer.workspace = true
