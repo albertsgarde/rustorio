@@ -306,3 +306,8 @@ UI rendered on the server.
 When adding dependencies to the project, specify a specific version in
 `Cargo.toml`, and ensure that it is the newest stable version. The best way to
 do this is to use the `cargo add` command.
+
+# Checking
+
+To check your code for errors, run `just check --strict`. It will run clippy,
+fmt, doc and nextest.

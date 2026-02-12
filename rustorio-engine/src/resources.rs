@@ -51,7 +51,10 @@ macro_rules! resource_type {
 
 /// Error returned when there are insufficient resources in a [`Resource`] to fulfill a request.
 #[derive(Debug, Clone)]
-pub struct InsufficientResourceError<Resource: ResourceType> {
+pub struct InsufficientResourceError<Resource>
+where
+    Resource: ResourceType,
+{
     /// The amount of resource that was requested.
     pub requested_amount: u32,
     /// The amount of resource that was actually available.
@@ -59,7 +62,10 @@ pub struct InsufficientResourceError<Resource: ResourceType> {
     phantom: PhantomData<Resource>,
 }
 
-impl<Resource: ResourceType> InsufficientResourceError<Resource> {
+impl<Resource> InsufficientResourceError<Resource>
+where
+    Resource: ResourceType,
+{
     /// Creates a new `InsufficientResourceError`.
     pub const fn new(requested_amount: u32, available_amount: u32) -> Self {
         Self {
@@ -70,7 +76,10 @@ impl<Resource: ResourceType> InsufficientResourceError<Resource> {
     }
 }
 
-impl<Resource: ResourceType> Display for InsufficientResourceError<Resource> {
+impl<Resource> Display for InsufficientResourceError<Resource>
+where
+    Resource: ResourceType,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -86,27 +95,37 @@ impl<Resource: ResourceType> Display for InsufficientResourceError<Resource> {
 /// A [`Resource`] object can be split into smaller parts, combined or [`Bundle`]s can be extracted from them.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use = "This resource is being dropped without being used. If this is intentional, use the `let _ = resource;` pattern to silence this warning."]
-pub struct Resource<Content: ResourceType> {
+pub struct Resource<R>
+where
+    R: ResourceType,
+{
     /// The amount of the resource contained in this [`Resource`].
     pub(crate) amount: u32,
-    phantom: PhantomData<Content>,
+    phantom: PhantomData<R>,
 }
 
 /// Creates a new [`Resource`] with the specified amount.
 /// Should not be reexported in mods.
-pub const fn resource<Content: ResourceType>(amount: u32) -> Resource<Content> {
+pub const fn resource<R>(amount: u32) -> Resource<R>
+where
+    R: ResourceType,
+{
     Resource::new(amount)
 }
 
 /// Returns a mutable reference to the amount of resource contained in the given [`Resource`].
 /// Should not be reexported in mods.
-pub const fn resource_amount_mut<Content: ResourceType>(
-    resource: &mut Resource<Content>,
-) -> &mut u32 {
+pub const fn resource_amount_mut<R>(resource: &mut Resource<R>) -> &mut u32
+where
+    R: ResourceType,
+{
     resource.amount_mut()
 }
 
-impl<Content: ResourceType> Resource<Content> {
+impl<R> Resource<R>
+where
+    R: ResourceType,
+{
     /// Creates a new empty [`Resource`].
     pub const fn new_empty() -> Self {
         Self {
@@ -143,10 +162,7 @@ impl<Content: ResourceType> Resource<Content> {
 
     /// Removes a specified amount of resources from this [`Resource`] and returns them as a new [`Resource`].
     /// If there are insufficient resources in the [`Resource`], it returns `None`.
-    pub const fn split_off(
-        &mut self,
-        amount: u32,
-    ) -> Result<Self, InsufficientResourceError<Content>> {
+    pub const fn split_off(&mut self, amount: u32) -> Result<Self, InsufficientResourceError<R>> {
         if let Some(remaining) = self.amount.checked_sub(amount) {
             self.amount = remaining;
             Ok(Resource::new(amount))
@@ -188,21 +204,16 @@ impl<Content: ResourceType> Resource<Content> {
         self.amount = 0;
     }
 
-    /// Adds the entire contents of another resource container to this one.
+    /// Adds the entire Rs of another resource container to this one.
     /// You can also use `+=`.
     pub fn add(&mut self, other: impl Into<Self>) {
         self.amount += other.into().amount();
     }
 
-    /// Consumes a [`Bundle`] of the same resource type and adds the contained resources to this [`Resource`].
-    pub const fn add_bundle<const AMOUNT: u32>(&mut self, bundle: Bundle<Content, AMOUNT>) {
-        self.amount += bundle.amount();
-    }
-
     /// Takes a specified amount of resources from this [`Resource`] and puts it into a [`Bundle`].
     pub const fn bundle<const AMOUNT: u32>(
         &mut self,
-    ) -> Result<Bundle<Content, AMOUNT>, InsufficientResourceError<Content>> {
+    ) -> Result<Bundle<R, AMOUNT>, InsufficientResourceError<R>> {
         if let Some(remaining) = self.amount.checked_sub(AMOUNT) {
             self.amount = remaining;
             Ok(Bundle::new())
@@ -212,48 +223,64 @@ impl<Content: ResourceType> Resource<Content> {
     }
 }
 
-impl<Content: ResourceType> Display for Resource<Content> {
+impl<R> Display for Resource<R>
+where
+    R: ResourceType,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{amount} {content}",
-            amount = self.amount,
-            content = Content::NAME
-        )
+        write!(f, "{amount} {R}", amount = self.amount, R = R::NAME)
     }
 }
 
-impl<Content: ResourceType> PartialOrd<u32> for Resource<Content> {
+impl<R> PartialOrd<u32> for Resource<R>
+where
+    R: ResourceType,
+{
     fn partial_cmp(&self, other: &u32) -> Option<std::cmp::Ordering> {
         Some(self.amount.cmp(other))
     }
 }
 
-impl<Content: ResourceType> PartialEq<u32> for Resource<Content> {
+impl<R> PartialEq<u32> for Resource<R>
+where
+    R: ResourceType,
+{
     fn eq(&self, other: &u32) -> bool {
         self.amount == *other
     }
 }
 
-impl<Content: ResourceType> PartialOrd<Resource<Content>> for u32 {
-    fn partial_cmp(&self, other: &Resource<Content>) -> Option<std::cmp::Ordering> {
+impl<R> PartialOrd<Resource<R>> for u32
+where
+    R: ResourceType,
+{
+    fn partial_cmp(&self, other: &Resource<R>) -> Option<std::cmp::Ordering> {
         Some(self.cmp(&other.amount))
     }
 }
 
-impl<Content: ResourceType> PartialEq<Resource<Content>> for u32 {
-    fn eq(&self, other: &Resource<Content>) -> bool {
+impl<R> PartialEq<Resource<R>> for u32
+where
+    R: ResourceType,
+{
+    fn eq(&self, other: &Resource<R>) -> bool {
         *self == other.amount
     }
 }
 
-impl<Content: ResourceType> AddAssign for Resource<Content> {
+impl<R> AddAssign for Resource<R>
+where
+    R: ResourceType,
+{
     fn add_assign(&mut self, rhs: Self) {
         self.amount += rhs.amount
     }
 }
 
-impl<Content: ResourceType> Add for Resource<Content> {
+impl<R> Add for Resource<R>
+where
+    R: ResourceType,
+{
     type Output = Self;
 
     fn add(mut self, rhs: Self) -> Self::Output {
@@ -262,7 +289,10 @@ impl<Content: ResourceType> Add for Resource<Content> {
     }
 }
 
-impl<Content: ResourceType> Sum for Resource<Content> {
+impl<R> Sum for Resource<R>
+where
+    R: ResourceType,
+{
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Resource::new_empty(), |cur, next| cur + next)
     }
@@ -270,15 +300,21 @@ impl<Content: ResourceType> Sum for Resource<Content> {
 
 /// Contains a fixed (compile-time known) amount of a resource.
 /// A [`Bundle`] can be used to build structures or as input for recipes.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use = "This bundle is being dropped without being used. If this is intentional, use the `let _ = bundle;` pattern to silence this warning."]
-pub struct Bundle<Content: ResourceType, const AMOUNT: u32> {
-    dummy: PhantomData<Content>,
+pub struct Bundle<R, const AMOUNT: u32>
+where
+    R: ResourceType,
+{
+    dummy: PhantomData<R>,
 }
 
 /// Creates a new [`Bundle`] with the specified resource type and amount.
 /// Should not be reexported in mods.
-pub fn bundle<Content: ResourceType, const AMOUNT: u32>() -> Bundle<Content, AMOUNT> {
+pub fn bundle<R, const AMOUNT: u32>() -> Bundle<R, AMOUNT>
+where
+    R: ResourceType,
+{
     Bundle::new()
 }
 
@@ -288,7 +324,10 @@ pub struct Assert<const OK: bool>;
 pub trait IsTrue {}
 impl IsTrue for Assert<true> {}
 
-impl<Content: ResourceType, const AMOUNT: u32> Bundle<Content, AMOUNT> {
+impl<R, const AMOUNT: u32> Bundle<R, AMOUNT>
+where
+    R: ResourceType,
+{
     /// The fixed amount of resource contained in this [`Bundle`].
     pub const AMOUNT: u32 = AMOUNT;
 
@@ -305,7 +344,7 @@ impl<Content: ResourceType, const AMOUNT: u32> Bundle<Content, AMOUNT> {
     /// The sum of `AMOUNT1` and `AMOUNT2` must equal the amount of this [`Bundle`].
     pub const fn split<const AMOUNT1: u32, const AMOUNT2: u32>(
         self,
-    ) -> (Bundle<Content, AMOUNT1>, Bundle<Content, AMOUNT2>)
+    ) -> (Bundle<R, AMOUNT1>, Bundle<R, AMOUNT2>)
     where
         Assert<{ AMOUNT1 + AMOUNT2 == AMOUNT }>: IsTrue,
     {
@@ -313,53 +352,136 @@ impl<Content: ResourceType, const AMOUNT: u32> Bundle<Content, AMOUNT> {
     }
 
     /// Converts this [`Bundle`] into a [`Resource`] with the same resource type and amount.
-    pub const fn to_resource(self) -> Resource<Content> {
+    pub const fn to_resource(self) -> Resource<R> {
         Resource::new(AMOUNT)
     }
 }
 
-impl<Content: ResourceType, const AMOUNT: u32> AddAssign<Bundle<Content, AMOUNT>>
-    for Resource<Content>
+impl<R, const AMOUNT: u32> AddAssign<Bundle<R, AMOUNT>> for Resource<R>
+where
+    R: ResourceType,
 {
-    fn add_assign(&mut self, bundle: Bundle<Content, AMOUNT>) {
+    fn add_assign(&mut self, bundle: Bundle<R, AMOUNT>) {
         let _ = bundle;
         self.amount += AMOUNT;
     }
 }
 
-impl<Content: ResourceType, const AMOUNT: u32> Add<Bundle<Content, AMOUNT>> for Resource<Content> {
+impl<R, const AMOUNT: u32> Add<Bundle<R, AMOUNT>> for Resource<R>
+where
+    R: ResourceType,
+{
     type Output = Self;
 
-    fn add(mut self, rhs: Bundle<Content, AMOUNT>) -> Self::Output {
+    fn add(mut self, rhs: Bundle<R, AMOUNT>) -> Self::Output {
         self += rhs;
         self
     }
 }
 
-impl<Content: ResourceType, const AMOUNT: u32> Add<Resource<Content>> for Bundle<Content, AMOUNT> {
-    type Output = Resource<Content>;
+impl<R, const AMOUNT: u32> Add<Resource<R>> for Bundle<R, AMOUNT>
+where
+    R: ResourceType,
+{
+    type Output = Resource<R>;
 
-    fn add(self, mut rhs: Resource<Content>) -> Self::Output {
+    fn add(self, mut rhs: Resource<R>) -> Self::Output {
         rhs += self;
         rhs
     }
 }
 
-impl<Content: ResourceType, const AMOUNT_LHS: u32, const AMOUNT_RHS: u32>
-    Add<Bundle<Content, AMOUNT_RHS>> for Bundle<Content, AMOUNT_LHS>
+impl<R, const AMOUNT_LHS: u32, const AMOUNT_RHS: u32> Add<Bundle<R, AMOUNT_RHS>>
+    for Bundle<R, AMOUNT_LHS>
 where
+    R: ResourceType,
     [(); { AMOUNT_LHS + AMOUNT_RHS } as usize]:,
 {
-    type Output = Bundle<Content, { AMOUNT_LHS + AMOUNT_RHS }>;
+    type Output = Bundle<R, { AMOUNT_LHS + AMOUNT_RHS }>;
 
-    fn add(self, rhs: Bundle<Content, AMOUNT_RHS>) -> Self::Output {
+    fn add(self, rhs: Bundle<R, AMOUNT_RHS>) -> Self::Output {
         let _ = rhs;
         Bundle::new()
     }
 }
 
-impl<Content: ResourceType, const AMOUNT: u32> From<Bundle<Content, AMOUNT>> for Resource<Content> {
-    fn from(bundle: Bundle<Content, AMOUNT>) -> Self {
+impl<R, const AMOUNT: u32> PartialEq<Bundle<R, AMOUNT>> for Resource<R>
+where
+    R: ResourceType,
+{
+    fn eq(&self, _other: &Bundle<R, AMOUNT>) -> bool {
+        self.amount == AMOUNT
+    }
+}
+
+impl<R, const AMOUNT: u32> PartialEq<Resource<R>> for Bundle<R, AMOUNT>
+where
+    R: ResourceType,
+{
+    fn eq(&self, other: &Resource<R>) -> bool {
+        AMOUNT == other.amount
+    }
+}
+
+impl<R, const AMOUNT: u32> PartialOrd<Bundle<R, AMOUNT>> for Resource<R>
+where
+    R: ResourceType,
+{
+    fn partial_cmp(&self, _other: &Bundle<R, AMOUNT>) -> Option<std::cmp::Ordering> {
+        Some(self.amount.cmp(&AMOUNT))
+    }
+}
+
+impl<R, const AMOUNT: u32> PartialOrd<Resource<R>> for Bundle<R, AMOUNT>
+where
+    R: ResourceType,
+{
+    fn partial_cmp(&self, other: &Resource<R>) -> Option<std::cmp::Ordering> {
+        Some(AMOUNT.cmp(&other.amount))
+    }
+}
+
+impl<R, const AMOUNT: u32> PartialEq<u32> for Bundle<R, AMOUNT>
+where
+    R: ResourceType,
+{
+    fn eq(&self, other: &u32) -> bool {
+        AMOUNT == *other
+    }
+}
+
+impl<R, const AMOUNT: u32> PartialEq<Bundle<R, AMOUNT>> for u32
+where
+    R: ResourceType,
+{
+    fn eq(&self, _other: &Bundle<R, AMOUNT>) -> bool {
+        *self == AMOUNT
+    }
+}
+
+impl<R, const AMOUNT: u32> PartialOrd<u32> for Bundle<R, AMOUNT>
+where
+    R: ResourceType,
+{
+    fn partial_cmp(&self, other: &u32) -> Option<std::cmp::Ordering> {
+        Some(AMOUNT.cmp(other))
+    }
+}
+
+impl<R, const AMOUNT: u32> PartialOrd<Bundle<R, AMOUNT>> for u32
+where
+    R: ResourceType,
+{
+    fn partial_cmp(&self, _other: &Bundle<R, AMOUNT>) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&AMOUNT))
+    }
+}
+
+impl<R, const AMOUNT: u32> From<Bundle<R, AMOUNT>> for Resource<R>
+where
+    R: ResourceType,
+{
+    fn from(bundle: Bundle<R, AMOUNT>) -> Self {
         let _ = bundle;
         Resource::new(AMOUNT)
     }
