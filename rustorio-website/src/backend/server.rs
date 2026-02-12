@@ -48,25 +48,5 @@ async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
     .execute(pool)
     .await?;
 
-    // Insert sample data if table is empty
-    let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM runs")
-        .fetch_one(pool)
-        .await?;
-
-    if count.0 == 0 {
-        sqlx::query(
-            "INSERT INTO runs (name, gamemode, tick_count) VALUES
-                ('SpeedRunner42', 'tutorial', 12543),
-                ('SpeedRunner42', 'tutorial', 14000),
-                ('FactorioMaster', 'tutorial', 15221),
-                ('FactorioMaster', 'tutorial', 18000),
-                ('OptimalPath', 'tutorial', 18902),
-                ('RocketScience', 'tutorial', 21445),
-                ('NewPlayer', 'tutorial', 45678)",
-        )
-        .execute(pool)
-        .await?;
-    }
-
     Ok(())
 }
