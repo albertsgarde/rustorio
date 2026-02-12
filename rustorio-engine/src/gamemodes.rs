@@ -18,4 +18,8 @@ pub trait GameMode {
     type StartingResources: StartingResources;
     /// Resources required to achieve victory.
     type VictoryResources;
+
+    /// Human readable unique name of the gamemode.
+    /// Used when submitting to register what gamemode.
+    const NAME: &str;
 }

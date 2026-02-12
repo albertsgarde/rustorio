@@ -33,5 +33,15 @@ pull:
 publish:
     cargo publish
 
-install-local:
-    cargo install --path rustorio
+serve:
+    dx serve --package rustorio-website
+
+build-docker:
+    docker build . -f docker/website2.dockerfile -t rustorio-website
+
+run-docker:
+    docker rm rustorio-website --force 2>/dev/null
+    docker run --rm --name rustorio-website -p 8080:8080 --mount type=bind,src=./data,dst=/app/data rustorio-website
+
+install-local *ARGS:
+    cargo install --path rustorio-cli {{ARGS}}

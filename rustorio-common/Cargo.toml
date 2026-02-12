@@ -1,0 +1,15 @@
+[package]
+name = "rustorio-common"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

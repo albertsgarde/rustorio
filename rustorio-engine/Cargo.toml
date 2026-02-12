@@ -15,3 +15,4 @@ workspace = true
 
 [dependencies]
 rustorio-derive = { path = "../rustorio-derive", version = "0.1.2" }
+rustorio-common = { path = "../rustorio-common", version = "0.1.2" }

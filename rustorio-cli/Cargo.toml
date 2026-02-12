@@ -1,22 +1,24 @@
 [package]
-name = "rustorio"
+name = "rustorio-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+readme = "../README.md"
 description = """The first game written and played entirely in Rust's type system. Not just do you play by
 writing Rust code, the rules of the game are enforced by the Rust compiler! If
 you can write the program so it compiles and doesn't panic, you win!"""
-readme = "../README.md"
-documentation = "https://docs.rs/rustorio"
+include = ["Cargo.toml", "src", "assets/examples/*", "rust-toolchain.toml"]
 
+[dependencies]
+rustorio-common = { path = "../rustorio-common", version = "0.1.2" }
+anyhow.workspace = true
+clap.workspace = true
+dialoguer.workspace = true
+reqwest.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+toml.workspace = true
 
 [lints]
 workspace = true
-
-[dependencies]
-rustorio-engine = { path = "../rustorio-engine", version = "0.1.2" }
-rustorio-cli = { path = "../rustorio-cli", version = "0.1.2" }
-
-[[bin]]
-name = "rustorio"
