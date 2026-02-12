@@ -22,9 +22,3 @@ toml.workspace = true
 
 [lints]
 workspace = true
-
-[lib]
-
-
-[[bin]]
-name = "rustorio"
