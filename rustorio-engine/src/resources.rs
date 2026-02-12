@@ -194,11 +194,6 @@ impl<Content: ResourceType> Resource<Content> {
         self.amount += other.into().amount();
     }
 
-    /// Consumes a [`Bundle`] of the same resource type and adds the contained resources to this [`Resource`].
-    pub const fn add_bundle<const AMOUNT: u32>(&mut self, bundle: Bundle<Content, AMOUNT>) {
-        self.amount += bundle.amount();
-    }
-
     /// Takes a specified amount of resources from this [`Resource`] and puts it into a [`Bundle`].
     pub const fn bundle<const AMOUNT: u32>(
         &mut self,
