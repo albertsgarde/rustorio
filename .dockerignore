@@ -1,3 +1,10 @@
-/target /dist /.github LICENSE-APACHE LICENSE-MIT README.md
+**/target
+/.jj
+/.git
+/dist
+/.github
+LICENSE-APACHE
+LICENSE-MIT
+README.md
 
 **.db
