@@ -265,7 +265,7 @@ impl<Content: ResourceType> Sum for Resource<Content> {
 
 /// Contains a fixed (compile-time known) amount of a resource.
 /// A [`Bundle`] can be used to build structures or as input for recipes.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use = "This bundle is being dropped without being used. If this is intentional, use the `let _ = bundle;` pattern to silence this warning."]
 pub struct Bundle<Content: ResourceType, const AMOUNT: u32> {
     dummy: PhantomData<Content>,
@@ -350,6 +350,62 @@ where
     fn add(self, rhs: Bundle<Content, AMOUNT_RHS>) -> Self::Output {
         let _ = rhs;
         Bundle::new()
+    }
+}
+
+impl<Content: ResourceType, const AMOUNT: u32> PartialEq<Bundle<Content, AMOUNT>>
+    for Resource<Content>
+{
+    fn eq(&self, _other: &Bundle<Content, AMOUNT>) -> bool {
+        self.amount == AMOUNT
+    }
+}
+
+impl<Content: ResourceType, const AMOUNT: u32> PartialEq<Resource<Content>>
+    for Bundle<Content, AMOUNT>
+{
+    fn eq(&self, other: &Resource<Content>) -> bool {
+        AMOUNT == other.amount
+    }
+}
+
+impl<Content: ResourceType, const AMOUNT: u32> PartialOrd<Bundle<Content, AMOUNT>>
+    for Resource<Content>
+{
+    fn partial_cmp(&self, _other: &Bundle<Content, AMOUNT>) -> Option<std::cmp::Ordering> {
+        Some(self.amount.cmp(&AMOUNT))
+    }
+}
+
+impl<Content: ResourceType, const AMOUNT: u32> PartialOrd<Resource<Content>>
+    for Bundle<Content, AMOUNT>
+{
+    fn partial_cmp(&self, other: &Resource<Content>) -> Option<std::cmp::Ordering> {
+        Some(AMOUNT.cmp(&other.amount))
+    }
+}
+
+impl<Content: ResourceType, const AMOUNT: u32> PartialEq<u32> for Bundle<Content, AMOUNT> {
+    fn eq(&self, other: &u32) -> bool {
+        AMOUNT == *other
+    }
+}
+
+impl<Content: ResourceType, const AMOUNT: u32> PartialEq<Bundle<Content, AMOUNT>> for u32 {
+    fn eq(&self, _other: &Bundle<Content, AMOUNT>) -> bool {
+        *self == AMOUNT
+    }
+}
+
+impl<Content: ResourceType, const AMOUNT: u32> PartialOrd<u32> for Bundle<Content, AMOUNT> {
+    fn partial_cmp(&self, other: &u32) -> Option<std::cmp::Ordering> {
+        Some(AMOUNT.cmp(other))
+    }
+}
+
+impl<Content: ResourceType, const AMOUNT: u32> PartialOrd<Bundle<Content, AMOUNT>> for u32 {
+    fn partial_cmp(&self, _other: &Bundle<Content, AMOUNT>) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&AMOUNT))
     }
 }
 
