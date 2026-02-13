@@ -4,18 +4,14 @@ RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/ca
 RUN cargo binstall dioxus-cli
 
 FROM chef AS planner
-COPY rustorio-website/ .
-RUN cargo chef prepare --recipe-path recipe.json
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json --bin rustorio-website
 
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
-COPY rustorio-website/rust-toolchain.toml .
-
-
-COPY rustorio-website/ .
-
+COPY . .
 
 # Create the final bundle folder. Bundle with release build profile to enable optimizations.
 RUN dx bundle --web --release --package rustorio-website

@@ -37,7 +37,7 @@ serve:
     dx serve --package rustorio-website
 
 build-docker:
-    docker build . -f docker/website2.dockerfile -t rustorio-website
+    docker build . -f docker/website.dockerfile -t rustorio-website
 
 run-docker:
     docker rm rustorio-website --force 2>/dev/null
