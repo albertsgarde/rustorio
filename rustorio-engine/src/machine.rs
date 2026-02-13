@@ -67,6 +67,10 @@ pub struct Machine<R: Recipe> {
     outputs: R::Outputs,
     tick: u64,
     crafting_time: u64,
+    /// Multiplier on output units produced.
+    productivity: u32,
+    /// Multiplier on crafting speed.
+    speed: u64,
 }
 
 impl<R: RecipeEx> Machine<R> {
@@ -76,6 +80,8 @@ impl<R: RecipeEx> Machine<R> {
             outputs: R::new_outputs(),
             tick,
             crafting_time: 0,
+            productivity: 1,
+            speed: 1,
         }
     }
 
@@ -94,6 +100,26 @@ impl<R: RecipeEx> Machine<R> {
     pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::Outputs {
         self.tick(tick);
         &mut self.outputs
+    }
+
+    /// The multiplier on output units produced.
+    pub const fn productivity(&self) -> u32 {
+        self.productivity
+    }
+    /// Set the multiplier on output units produced.
+    pub fn productivity_mut(&mut self, tick: &Tick) -> &mut u32 {
+        self.tick(tick);
+        &mut self.productivity
+    }
+
+    /// The multiplier on crafting speed.
+    pub const fn speed(&self) -> u64 {
+        self.speed
+    }
+    /// Set the multiplier on crafting speed.
+    pub fn speed_mut(&mut self, tick: &Tick) -> &mut u64 {
+        self.tick(tick);
+        &mut self.speed
     }
 
     fn iter_inputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
@@ -137,13 +163,15 @@ impl<R: RecipeEx> Machine<R> {
 
     fn tick(&mut self, tick: &Tick) {
         assert!(tick.cur() >= self.tick, "Tick must be non-decreasing");
+        let productivity = self.productivity;
+        let time_per_unit = R::TIME.div_ceil(self.speed);
 
         self.crafting_time += tick.cur() - self.tick;
         let crafting_time = self.crafting_time;
         let count = self
             .iter_inputs()
             .map(|(_, needed, current)| *current / needed)
-            .chain((R::TIME > 0).then(|| (crafting_time / R::TIME).try_into().unwrap()))
+            .chain((time_per_unit > 0).then(|| (crafting_time / time_per_unit).try_into().unwrap()))
             .min()
             .unwrap();
 
@@ -151,9 +179,9 @@ impl<R: RecipeEx> Machine<R> {
             *current -= count * needed;
         }
         for (_, needed, current) in self.iter_outputs() {
-            *current += count * needed;
+            *current += count * needed * productivity;
         }
-        self.crafting_time -= u64::from(count) * R::TIME;
+        self.crafting_time -= u64::from(count) * time_per_unit;
 
         if self
             .iter_inputs()
