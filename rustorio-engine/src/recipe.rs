@@ -26,12 +26,13 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
     fn add(res: &mut Self::AsResources, bundle: Self);
     /// Pop a bundle tuple from a resource tuple, if there are enough resources.
     fn bundle(res: &mut Self::AsResources) -> Option<Self>;
+}
 
+#[doc(hidden)]
+pub trait MultiBundleEx: MultiBundle {
     /// Factory function to create a new bundle tuple.
-    #[doc(hidden)]
     fn new_bundle() -> Self;
     /// Iterate over the resources, giving direct mutable access to the amounts.
-    #[doc(hidden)]
     fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
 }
 
@@ -54,12 +55,13 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     fn bundle(res: &mut Self::AsResources) -> Option<Self> {
         <(Self,) as MultiBundle>::bundle(res).map(|(r,)| r)
     }
-
+}
+impl<R1: ResourceType, const N1: u32> MultiBundleEx for Bundle<R1, N1> {
     fn new_bundle() -> Self {
-        <(Self,) as MultiBundle>::new_bundle().0
+        <(Self,) as MultiBundleEx>::new_bundle().0
     }
     fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        <(Self,) as MultiBundle>::iter(items)
+        <(Self,) as MultiBundleEx>::iter(items)
     }
 }
 
@@ -81,7 +83,8 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for (Bundle<R1, N1>,) {
     fn bundle(res: &mut Self::AsResources) -> Option<Self> {
         Some((res.0.bundle().ok()?,))
     }
-
+}
+impl<R1: ResourceType, const N1: u32> MultiBundleEx for (Bundle<R1, N1>,) {
     fn new_bundle() -> Self {
         (crate::resources::bundle(),)
     }
@@ -120,7 +123,10 @@ impl<R1: ResourceType, const N1: u32, R2: ResourceType, const N2: u32> MultiBund
             None
         }
     }
-
+}
+impl<R1: ResourceType, const N1: u32, R2: ResourceType, const N2: u32> MultiBundleEx
+    for (Bundle<R1, N1>, Bundle<R2, N2>)
+{
     fn new_bundle() -> Self {
         (crate::resources::bundle(), crate::resources::bundle())
     }
@@ -184,7 +190,16 @@ impl<
             None
         }
     }
-
+}
+impl<
+    R1: ResourceType,
+    const N1: u32,
+    R2: ResourceType,
+    const N2: u32,
+    R3: ResourceType,
+    const N3: u32,
+> MultiBundleEx for (Bundle<R1, N1>, Bundle<R2, N2>, Bundle<R3, N3>)
+{
     fn new_bundle() -> Self {
         (
             crate::resources::bundle(),
@@ -280,10 +295,10 @@ pub trait Recipe {
 pub trait RecipeEx: Recipe {
     /// A type guaranteed to contain exactly the input resources for one recipe cycle.
     /// Used in handcrafting.
-    type InputBundle: MultiBundle<AsResources = Self::Inputs>;
+    type InputBundle: MultiBundleEx<AsResources = Self::Inputs>;
     /// A type guaranteed to contain exactly the output resources for one recipe cycle.
     /// Used in handcrafting.
-    type OutputBundle: MultiBundle<AsResources = Self::Outputs>;
+    type OutputBundle: MultiBundleEx<AsResources = Self::Outputs>;
 
     /// Factory function to create a new `Self::InputBundle`.
     fn new_output_bundle() -> Self::OutputBundle {

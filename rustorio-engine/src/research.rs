@@ -9,7 +9,7 @@ pub use rustorio_derive::{TechnologyEx, technology_doc};
 
 use crate::{
     ResourceType, Sealed,
-    recipe::{MultiBundle, Recipe, RecipeEx},
+    recipe::{MultiBundle, MultiBundleEx, Recipe, RecipeEx},
     resources::{Bundle, Resource},
 };
 
@@ -36,7 +36,7 @@ pub trait Technology: Sealed + Debug + Sized + TechnologyEx {
 pub trait TechnologyEx {
     /// A type guaranteed to contain exactly the input resources for one research point.
     /// Used in hand crafting.
-    type InputBundle: MultiBundle;
+    type InputBundle: MultiBundleEx;
     /// The amount of ticks it takes to create one research point for this technology.
     const POINT_RECIPE_TIME: u64;
     /// How many of this technology's research points (`ResearchPoint<T>`) are needed to complete the research.
