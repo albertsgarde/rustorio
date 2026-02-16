@@ -2,12 +2,13 @@
 //! To begin with you can mine by hand using the [`hand_mine`](Territory::hand_mine) function,
 //! but later you can add [`Miner`]s to the territory to automate mining.
 
-use std::fmt::Display;
+use std::{fmt::Display, marker::PhantomData};
 
 use rustorio_engine::{
-    ResourceType, bundle,
+    ResourceType, Sealed, bundle,
+    machine::Machine,
     mod_reexports::{Bundle, Resource, Tick},
-    resource,
+    recipe::{HandRecipe, MultiBundle, Recipe, RecipeEx},
 };
 
 use crate::resources::{Copper, Iron};
@@ -47,27 +48,54 @@ impl Display for TerritoryFullError {
     }
 }
 
+// A recipe that encodes the operation of a territory: it takes no input.
+#[derive(Debug)]
+struct TerritoryRecipe<OreType: ResourceType>(PhantomData<OreType>);
+
+impl<O: ResourceType> RecipeEx for TerritoryRecipe<O> {
+    type InputBundle = ();
+    type OutputBundle = Bundle<O, 1>;
+}
+impl<O: ResourceType> Recipe for TerritoryRecipe<O> {
+    const TIME: u64 = MINING_TICK_LENGTH;
+
+    type Inputs = <<Self as RecipeEx>::InputBundle as MultiBundle>::AsResources;
+    type Outputs = <<Self as RecipeEx>::OutputBundle as MultiBundle>::AsResources;
+    fn new_inputs() -> Self::Inputs {
+        Default::default()
+    }
+    fn new_outputs() -> Self::Outputs {
+        Default::default()
+    }
+
+    type InputAmountsType = <<Self as RecipeEx>::InputBundle as MultiBundle>::AmountsType;
+    const INPUT_AMOUNTS: Self::InputAmountsType =
+        <<Self as RecipeEx>::InputBundle as MultiBundle>::AMOUNTS;
+
+    type OutputAmountsType = <<Self as RecipeEx>::OutputBundle as MultiBundle>::AmountsType;
+    const OUTPUT_AMOUNTS: Self::OutputAmountsType =
+        <<Self as RecipeEx>::OutputBundle as MultiBundle>::AMOUNTS;
+}
+impl<O: ResourceType> Sealed for TerritoryRecipe<O> {}
+impl<O: ResourceType> HandRecipe for TerritoryRecipe<O> {}
+
 /// A territory that can hold miners to mine a specific type of ore.
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct Territory<OreType: ResourceType> {
-    tick: u64,
-    crafting_time: u64,
     /// The maximum number of miners allowed in the territory.
     max_miners: u32,
-    miners: u32,
-    resources: Resource<OreType>,
+    machine: Machine<TerritoryRecipe<OreType>>,
 }
 
 impl<OreType: ResourceType> Territory<OreType> {
     /// Creates a new territory that can hold up to `max_miners` miners.
-    pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
+    pub(crate) fn new(tick: &Tick, max_miners: u32) -> Self {
+        let mut machine = Machine::new(tick);
+        *machine.productivity_mut(tick) = 0; // Start with 0 miners
         Self {
-            tick: tick.cur(),
-            crafting_time: 0,
             max_miners,
-            miners: 0,
-            resources: Resource::new_empty(),
+            machine,
         }
     }
 
@@ -78,21 +106,16 @@ impl<OreType: ResourceType> Territory<OreType> {
 
     /// Returns the current number of miners in the territory.
     pub const fn num_miners(&self) -> u32 {
-        self.miners
+        self.machine.productivity()
     }
 
     fn tick(&mut self, tick: &Tick) {
-        assert!(self.tick <= tick.cur(), "Tick went backwards");
-        self.crafting_time += tick.cur() - self.tick;
-        let count = self.crafting_time / MINING_TICK_LENGTH;
-        self.resources +=
-            resource(u32::try_from(count).expect("Mining tick delta too large") * self.miners);
-        self.crafting_time -= u64::from(count) * MINING_TICK_LENGTH;
-        self.tick = tick.cur();
+        self.machine.outputs(tick); // `Machine::tick` isn't `pub` so we use this
     }
 
     /// Mines ore by hand, advancing the tick by [`MINING_TICK_LENGTH`] for each unit mined.
     pub fn hand_mine<const AMOUNT: u32>(&mut self, tick: &mut Tick) -> Bundle<OreType, AMOUNT> {
+        // Would use `HandRecipe` but it doesn't supports doing it many times at once.
         self.tick(tick);
         tick.advance_by((u64::from(AMOUNT)) * MINING_TICK_LENGTH);
         bundle()
@@ -101,9 +124,9 @@ impl<OreType: ResourceType> Territory<OreType> {
     /// Adds a miner to the territory.
     /// Returns an error including the given miner if the territory is already full.
     pub fn add_miner(&mut self, tick: &Tick, miner: Miner) -> Result<(), TerritoryFullError> {
-        self.tick(tick);
-        if self.miners < self.max_miners {
-            self.miners += 1;
+        let num_miners = self.machine.productivity_mut(tick);
+        if *num_miners < self.max_miners {
+            *num_miners += 1;
             Ok(())
         } else {
             Err(TerritoryFullError {
@@ -116,9 +139,9 @@ impl<OreType: ResourceType> Territory<OreType> {
     /// Takes a miner from the territory.
     /// Returns `None` if there are no miners in the territory.
     pub fn take_miner(&mut self, tick: &Tick) -> Option<Miner> {
-        self.tick(tick);
-        if self.miners > 0 {
-            self.miners -= 1;
+        let num_miners = self.machine.productivity_mut(tick);
+        if *num_miners > 0 {
+            *num_miners -= 1;
             Some(Miner)
         } else {
             None
@@ -126,8 +149,7 @@ impl<OreType: ResourceType> Territory<OreType> {
     }
 
     /// Access the resources mined in this territory.
-    pub fn resources(&mut self, tick: &Tick) -> &mut Resource<OreType> {
-        self.tick(tick);
-        &mut self.resources
+    pub fn resources<'a>(&'a mut self, tick: &'a Tick) -> &'a mut Resource<OreType> {
+        &mut self.machine.outputs(tick).0
     }
 }
