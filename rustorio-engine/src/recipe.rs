@@ -65,191 +65,108 @@ impl<R1: ResourceType, const N1: u32> MultiBundleEx for Bundle<R1, N1> {
     }
 }
 
-impl MultiBundle for () {
-    type AsResources = ();
-
-    type AmountsType = ();
-    const AMOUNTS: Self::AmountsType = ();
-
-    fn new_empty() -> Self::AsResources {}
-    fn bundle_count((): &Self::AsResources) -> u32 {
-        u32::MAX
-    }
-    fn add((): &mut Self::AsResources, (): Self) {}
-    fn bundle((): &mut Self::AsResources) -> Option<Self> {
-        Some(())
-    }
-}
-impl MultiBundleEx for () {
-    fn new_bundle() -> Self {}
-    fn iter((): &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        [].into_iter()
-    }
+macro_rules! replace_expr {
+    ($_t:tt, $($sub:tt)*) => {
+        $($sub)*
+    };
 }
 
-impl<R1: ResourceType, const N1: u32> MultiBundle for (Bundle<R1, N1>,) {
-    type AsResources = (Resource<R1>,);
+macro_rules! impl_multi_bundle {
+    ($($n:tt $ty:ident $amount:ident),*) => {
+        #[allow(unused)]
+        impl<
+            $(
+                $ty: ResourceType,
+                const $amount: u32,
+            )*
+        > MultiBundle for
+            (
+                $(Bundle<$ty, $amount>,)*
+            )
+        {
+            type AsResources =
+                (
+                    $(Resource<$ty>,)*
+                );
 
-    type AmountsType = (u32,);
-    const AMOUNTS: Self::AmountsType = (N1,);
+            type AmountsType =
+                (
+                    $(replace_expr!($amount, u32),)*
+                );
+            const AMOUNTS: Self::AmountsType =
+                (
+                    $($amount,)*
+                );
 
-    fn new_empty() -> Self::AsResources {
-        (Resource::new_empty(),)
-    }
-    fn bundle_count(res: &Self::AsResources) -> u32 {
-        res.0.amount() / N1
-    }
-    fn add(res: &mut Self::AsResources, bundle: Self) {
-        res.0 += bundle.0;
-    }
-    fn bundle(res: &mut Self::AsResources) -> Option<Self> {
-        Some((res.0.bundle().ok()?,))
-    }
-}
-impl<R1: ResourceType, const N1: u32> MultiBundleEx for (Bundle<R1, N1>,) {
-    fn new_bundle() -> Self {
-        (crate::resources::bundle(),)
-    }
-    fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        [(
-            <R1 as ResourceType>::NAME,
-            Self::AMOUNTS.0,
-            crate::resources::resource_amount_mut(&mut items.0),
-        )]
-        .into_iter()
-    }
-}
-
-impl<R1: ResourceType, const N1: u32, R2: ResourceType, const N2: u32> MultiBundle
-    for (Bundle<R1, N1>, Bundle<R2, N2>)
-{
-    type AsResources = (Resource<R1>, Resource<R2>);
-
-    type AmountsType = (u32, u32);
-    const AMOUNTS: Self::AmountsType = (N1, N2);
-
-    fn new_empty() -> Self::AsResources {
-        (Resource::new_empty(), Resource::new_empty())
-    }
-    fn bundle_count(res: &Self::AsResources) -> u32 {
-        std::cmp::min(res.0.amount() / N1, res.1.amount() / N2)
-    }
-    fn add(res: &mut Self::AsResources, bundle: Self) {
-        res.0 += bundle.0;
-        res.1 += bundle.1;
-    }
-    fn bundle(res: &mut Self::AsResources) -> Option<Self> {
-        if res.0.amount() >= N1 && res.1.amount() >= N2 {
-            Some((res.0.bundle().ok()?, res.1.bundle().ok()?))
-        } else {
-            None
+            #[allow(clippy::unused_unit)]
+            fn new_empty() -> Self::AsResources {
+                (
+                    $(
+                        replace_expr!($ty, Resource::new_empty()),
+                    )*
+                )
+            }
+            fn bundle_count(res: &Self::AsResources) -> u32 {
+                [
+                    $(
+                        res.$n.amount() / $amount,
+                    )*
+                ].into_iter().min().unwrap_or(u32::MAX)
+            }
+            fn add(res: &mut Self::AsResources, bundle: Self) {
+                $(
+                    res.$n += bundle.$n;
+                )*
+            }
+            fn bundle(res: &mut Self::AsResources) -> Option<Self> {
+                let enough_resources = true $(
+                    && res.$n.amount() >= $amount
+                )*;
+                if enough_resources {
+                    Some((
+                        $(
+                            res.$n.bundle().ok()?,
+                        )*
+                    ))
+                } else {
+                    None
+                }
+            }
         }
-    }
-}
-impl<R1: ResourceType, const N1: u32, R2: ResourceType, const N2: u32> MultiBundleEx
-    for (Bundle<R1, N1>, Bundle<R2, N2>)
-{
-    fn new_bundle() -> Self {
-        (crate::resources::bundle(), crate::resources::bundle())
-    }
-    fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        [
-            (
-                <R1 as ResourceType>::NAME,
-                Self::AMOUNTS.0,
-                crate::resources::resource_amount_mut(&mut items.0),
-            ),
-            (
-                <R2 as ResourceType>::NAME,
-                Self::AMOUNTS.1,
-                crate::resources::resource_amount_mut(&mut items.1),
-            ),
-        ]
-        .into_iter()
-    }
-}
 
-impl<
-    R1: ResourceType,
-    const N1: u32,
-    R2: ResourceType,
-    const N2: u32,
-    R3: ResourceType,
-    const N3: u32,
-> MultiBundle for (Bundle<R1, N1>, Bundle<R2, N2>, Bundle<R3, N3>)
-{
-    type AsResources = (Resource<R1>, Resource<R2>, Resource<R3>);
-
-    type AmountsType = (u32, u32, u32);
-    const AMOUNTS: Self::AmountsType = (N1, N2, N3);
-
-    fn new_empty() -> Self::AsResources {
-        (
-            Resource::new_empty(),
-            Resource::new_empty(),
-            Resource::new_empty(),
-        )
-    }
-    fn bundle_count(res: &Self::AsResources) -> u32 {
-        std::cmp::min(
-            std::cmp::min(res.0.amount() / N1, res.1.amount() / N2),
-            res.2.amount() / N3,
-        )
-    }
-    fn add(res: &mut Self::AsResources, bundle: Self) {
-        res.0 += bundle.0;
-        res.1 += bundle.1;
-        res.2 += bundle.2;
-    }
-    fn bundle(res: &mut Self::AsResources) -> Option<Self> {
-        if res.0.amount() >= N1 && res.1.amount() >= N2 && res.2.amount() >= N3 {
-            Some((
-                res.0.bundle().ok()?,
-                res.1.bundle().ok()?,
-                res.2.bundle().ok()?,
-            ))
-        } else {
-            None
+        #[allow(unused)]
+        impl<
+            $($ty: ResourceType, const $amount: u32),*
+        > MultiBundleEx for ($(Bundle<$ty, $amount>,)*)
+        {
+            #[allow(clippy::unused_unit)]
+            fn new_bundle() -> Self {
+                (
+                    $(
+                        replace_expr!($ty, crate::resources::bundle()),
+                    )*
+                )
+            }
+            fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
+                [
+                    $(
+                        (
+                            <$ty as ResourceType>::NAME,
+                            Self::AMOUNTS.$n,
+                            crate::resources::resource_amount_mut(&mut items.$n),
+                        ),
+                    )*
+                ]
+                .into_iter()
+            }
         }
-    }
+    };
 }
-impl<
-    R1: ResourceType,
-    const N1: u32,
-    R2: ResourceType,
-    const N2: u32,
-    R3: ResourceType,
-    const N3: u32,
-> MultiBundleEx for (Bundle<R1, N1>, Bundle<R2, N2>, Bundle<R3, N3>)
-{
-    fn new_bundle() -> Self {
-        (
-            crate::resources::bundle(),
-            crate::resources::bundle(),
-            crate::resources::bundle(),
-        )
-    }
-    fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        [
-            (
-                <R1 as ResourceType>::NAME,
-                Self::AMOUNTS.0,
-                crate::resources::resource_amount_mut(&mut items.0),
-            ),
-            (
-                <R2 as ResourceType>::NAME,
-                Self::AMOUNTS.1,
-                crate::resources::resource_amount_mut(&mut items.1),
-            ),
-            (
-                <R3 as ResourceType>::NAME,
-                Self::AMOUNTS.2,
-                crate::resources::resource_amount_mut(&mut items.2),
-            ),
-        ]
-        .into_iter()
-    }
-}
+
+impl_multi_bundle!();
+impl_multi_bundle!(0 R1 N1);
+impl_multi_bundle!(0 R1 N1, 1 R2 N2);
+impl_multi_bundle!(0 R1 N1, 1 R2 N2, 2 R3 N3);
 
 /// Basic recipe trait. A building's specific recipe trait can then be defined like
 /// ```rust
