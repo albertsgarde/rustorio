@@ -52,6 +52,7 @@ impl Display for TerritoryFullError {
 #[non_exhaustive]
 pub struct Territory<OreType: ResourceType> {
     tick: u64,
+    crafting_time: u64,
     /// The maximum number of miners allowed in the territory.
     max_miners: u32,
     miners: u32,
@@ -63,6 +64,7 @@ impl<OreType: ResourceType> Territory<OreType> {
     pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
         Self {
             tick: tick.cur(),
+            crafting_time: 0,
             max_miners,
             miners: 0,
             resources: Resource::new_empty(),
@@ -81,10 +83,11 @@ impl<OreType: ResourceType> Territory<OreType> {
 
     fn tick(&mut self, tick: &Tick) {
         assert!(self.tick <= tick.cur(), "Tick went backwards");
-        let mining_tick_delta = tick.cur() / MINING_TICK_LENGTH - self.tick / MINING_TICK_LENGTH;
-        self.resources += resource(
-            u32::try_from(mining_tick_delta).expect("Mining tick delta too large") * self.miners,
-        );
+        self.crafting_time += tick.cur() - self.tick;
+        let count = self.crafting_time / MINING_TICK_LENGTH;
+        self.resources +=
+            resource(u32::try_from(count).expect("Mining tick delta too large") * self.miners);
+        self.crafting_time -= u64::from(count) * MINING_TICK_LENGTH;
         self.tick = tick.cur();
     }
 
