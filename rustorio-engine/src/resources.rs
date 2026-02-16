@@ -223,6 +223,15 @@ where
     }
 }
 
+impl<R> Default for Resource<R>
+where
+    R: ResourceType,
+{
+    fn default() -> Self {
+        Self::new_empty()
+    }
+}
+
 impl<R> Display for Resource<R>
 where
     R: ResourceType,

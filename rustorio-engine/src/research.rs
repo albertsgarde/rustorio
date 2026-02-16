@@ -77,11 +77,11 @@ where
     const OUTPUT_AMOUNTS: (u32,) = (1,);
 
     fn new_inputs() -> Self::Inputs {
-        <T::InputBundle as MultiBundle>::new_empty()
+        Default::default()
     }
 
     fn new_outputs() -> Self::Outputs {
-        (Resource::new_empty(),)
+        Default::default()
     }
 }
 

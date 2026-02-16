@@ -11,15 +11,13 @@ use crate::{
 /// A tuple of `Bundle<R, N>`.
 pub trait MultiBundle: Sized + std::fmt::Debug {
     /// The corresponding tuple of `Resource<R>`.
-    type AsResources: std::fmt::Debug;
+    type AsResources: Default + std::fmt::Debug;
 
     /// A tuple of `u32`, one for each resource; used for `AMOUNTS`.
     type AmountsType: std::fmt::Debug;
     /// Amount for each of the input resource types; used to help inspect the `Self` tuple.
     const AMOUNTS: Self::AmountsType;
 
-    /// Create a new resource tuple with zero resources.
-    fn new_empty() -> Self::AsResources;
     /// Count the number of bundle tuples available in the given resource tuple.
     fn bundle_count(res: &Self::AsResources) -> u32;
     /// Add the bundle tuple to the resource tuple.
@@ -43,9 +41,6 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     type AmountsType = (u32,);
     const AMOUNTS: Self::AmountsType = (N1,);
 
-    fn new_empty() -> Self::AsResources {
-        <(Self,) as MultiBundle>::new_empty()
-    }
     fn bundle_count(res: &Self::AsResources) -> u32 {
         <(Self,) as MultiBundle>::bundle_count(res)
     }
@@ -98,14 +93,6 @@ macro_rules! impl_multi_bundle {
                     $($amount,)*
                 );
 
-            #[allow(clippy::unused_unit)]
-            fn new_empty() -> Self::AsResources {
-                (
-                    $(
-                        replace_expr!($ty, Resource::new_empty()),
-                    )*
-                )
-            }
             fn bundle_count(res: &Self::AsResources) -> u32 {
                 [
                     $(
