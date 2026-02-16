@@ -15,10 +15,6 @@ use crate::resources::{Copper, Iron};
 /// Ore is mined every MINING_TICK_LENGTH ticks by each miner in a territory.
 pub const MINING_TICK_LENGTH: u64 = 2;
 
-const fn tick_to_mining_tick(tick: u64) -> u64 {
-    tick / MINING_TICK_LENGTH
-}
-
 /// A miner that can be added to a territory to mine resources.
 #[derive(Debug)]
 #[non_exhaustive]
@@ -55,7 +51,7 @@ impl Display for TerritoryFullError {
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct Territory<OreType: ResourceType> {
-    mining_tick: u64,
+    tick: u64,
     /// The maximum number of miners allowed in the territory.
     max_miners: u32,
     miners: u32,
@@ -66,7 +62,7 @@ impl<OreType: ResourceType> Territory<OreType> {
     /// Creates a new territory that can hold up to `max_miners` miners.
     pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
         Self {
-            mining_tick: tick_to_mining_tick(tick.cur()),
+            tick: tick.cur(),
             max_miners,
             miners: 0,
             resources: Resource::new_empty(),
@@ -84,13 +80,12 @@ impl<OreType: ResourceType> Territory<OreType> {
     }
 
     fn tick(&mut self, tick: &Tick) {
-        let mining_tick = tick_to_mining_tick(tick.cur());
-        assert!(self.mining_tick <= mining_tick, "Tick went backwards");
-        let mining_tick_delta = mining_tick - self.mining_tick;
+        assert!(self.tick <= tick.cur(), "Tick went backwards");
+        let mining_tick_delta = tick.cur() / MINING_TICK_LENGTH - self.tick / MINING_TICK_LENGTH;
         self.resources += resource(
             u32::try_from(mining_tick_delta).expect("Mining tick delta too large") * self.miners,
         );
-        self.mining_tick = mining_tick;
+        self.tick = tick.cur();
     }
 
     /// Mines ore by hand, advancing the tick by [`MINING_TICK_LENGTH`] for each unit mined.
