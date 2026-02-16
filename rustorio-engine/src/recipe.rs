@@ -65,6 +65,28 @@ impl<R1: ResourceType, const N1: u32> MultiBundleEx for Bundle<R1, N1> {
     }
 }
 
+impl MultiBundle for () {
+    type AsResources = ();
+
+    type AmountsType = ();
+    const AMOUNTS: Self::AmountsType = ();
+
+    fn new_empty() -> Self::AsResources {}
+    fn bundle_count((): &Self::AsResources) -> u32 {
+        u32::MAX
+    }
+    fn add((): &mut Self::AsResources, (): Self) {}
+    fn bundle((): &mut Self::AsResources) -> Option<Self> {
+        Some(())
+    }
+}
+impl MultiBundleEx for () {
+    fn new_bundle() -> Self {}
+    fn iter((): &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
+        [].into_iter()
+    }
+}
+
 impl<R1: ResourceType, const N1: u32> MultiBundle for (Bundle<R1, N1>,) {
     type AsResources = (Resource<R1>,);
 
