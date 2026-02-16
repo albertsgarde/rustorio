@@ -11,6 +11,8 @@ FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
+RUN rustup target add wasm32-unknown-unknown --toolchain stable
+
 COPY . .
 
 # Create the final bundle folder. Bundle with release build profile to enable optimizations.
