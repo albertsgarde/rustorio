@@ -4,8 +4,12 @@ use dioxus::server::axum::{
 use rustorio_common::SubmitRunRequest;
 use sqlx::SqlitePool;
 
+use crate::backend::server;
+
 pub fn router() -> Router {
-    Router::new().route("/runs", post(submit_run))
+    Router::new()
+        .route("/runs", post(submit_run))
+        .route("/reset-db", post(reset_db))
 }
 
 async fn submit_run(
@@ -20,6 +24,16 @@ async fn submit_run(
         .await
     {
         Ok(_) => StatusCode::CREATED.into_response(),
+        Err(e) => {
+            println!("{e:#}");
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("{e:#}")).into_response()
+        }
+    }
+}
+
+async fn reset_db(Extension(db): Extension<SqlitePool>) -> impl IntoResponse {
+    match server::reset_db(&db).await {
+        Ok(_) => StatusCode::OK.into_response(),
         Err(e) => {
             println!("{e:#}");
             (StatusCode::INTERNAL_SERVER_ERROR, format!("{e:#}")).into_response()

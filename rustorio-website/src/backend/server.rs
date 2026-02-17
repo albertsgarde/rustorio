@@ -34,7 +34,22 @@ pub fn init() {
     })
 }
 
-async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
+pub async fn reset_db(pool: &SqlitePool) -> sqlx::Result<()> {
+    let tables: Vec<String> = sqlx::query_scalar(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    )
+    .fetch_all(pool)
+    .await?;
+    for table in tables {
+        sqlx::query(&format!("DROP TABLE IF EXISTS {table}"))
+            .execute(pool)
+            .await?;
+    }
+    init_db(pool).await?;
+    Ok(())
+}
+
+pub async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS runs (
             run_id INTEGER PRIMARY KEY AUTOINCREMENT,
