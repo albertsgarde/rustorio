@@ -7,7 +7,9 @@ use std::{
     io::{self, Read},
     net::TcpListener,
     path::{Path, PathBuf},
-    process::{Command, ExitStatus, Termination},
+    process::{Command, ExitStatus, Termination, exit},
+    thread,
+    time::Duration,
 };
 
 use anyhow::{Context, Result, bail};
@@ -301,6 +303,9 @@ fn play(project_info: &ProjectInfo, save_name: &str) -> Result<PlayOutput> {
     }
 
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener
+        .set_nonblocking(true)
+        .context("Failed to set listener to non-blocking")?;
     let port = listener.local_addr().unwrap().port();
 
     // Use a raw "cargo" to allow the toolchain file to take effect.
@@ -313,8 +318,42 @@ fn play(project_info: &ProjectInfo, save_name: &str) -> Result<PlayOutput> {
         .spawn()
         .context("Failed to spawn Rustorio game")?;
 
-    let (mut stream, _) = listener.accept().unwrap();
+    // The child will only send a connection after the game has been won. This loop is to handle all the cases where that doesn't happen, such as the save failing to compile.
+    let mut stream = loop {
+        match listener.accept() {
+            Ok((stream, _)) => break stream,
+            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                // Check if the child process has exited
+                match child_handle.try_wait() {
+                    Ok(Some(status)) => {
+                        if let Some(code) = status.code() {
+                            if code == 0 {
+                                bail!("Rustorio process exited successfully before sending output");
+                            } else {
+                                exit(code);
+                            }
+                        } else {
+                            bail!(
+                                "Rustorio process exited with no status code before sending output"
+                            );
+                        }
+                    }
+                    Ok(None) => {
+                        thread::sleep(Duration::from_millis(1));
+                    }
+                    Err(e) => {
+                        bail!("Failed to wait for Rustorio process: {e}");
+                    }
+                }
+            }
+            Err(e) => {
+                bail!("Failed to accept connection: {e}");
+            }
+        }
+    };
+
     let mut output_buffer = String::new();
+
     stream.read_to_string(&mut output_buffer).unwrap();
 
     let exit_status = child_handle
