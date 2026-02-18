@@ -3,8 +3,6 @@ use sqlx::SqlitePool;
 
 use crate::{App, backend::api};
 
-static DB: std::sync::OnceLock<SqlitePool> = std::sync::OnceLock::new();
-
 #[derive(Parser)]
 pub struct Args {
     /// Path to the SQLite database file
@@ -16,27 +14,42 @@ pub fn init() {
     let args = Args::parse();
 
     let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
-    rt.block_on(async {
+    let pool = rt.block_on(async {
         let pool = SqlitePool::connect(&format!("sqlite:{}?mode=rwc", args.db_path))
             .await
             .expect("Failed to connect to database");
         init_db(&pool).await.expect("Failed to initialize database");
-        DB.set(pool).expect("DB already set");
+        pool
     });
 
-    dioxus::serve(|| async move {
-        let router =
-            dioxus::server::router(App).nest(rustorio_common::BASE_API_PATH, api::router());
+    dioxus::serve(move || {
+        let pool = pool.clone();
+        async move {
+            let router = dioxus::server::router(App)
+                .nest(rustorio_common::BASE_API_PATH, api::router())
+                .layer(dioxus::server::axum::Extension(pool));
 
-        Ok(router)
+            Ok(router)
+        }
     })
 }
 
-pub fn db() -> &'static SqlitePool {
-    DB.get().expect("DB not initialized")
+pub async fn reset_db(pool: &SqlitePool) -> sqlx::Result<()> {
+    let tables: Vec<String> = sqlx::query_scalar(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    )
+    .fetch_all(pool)
+    .await?;
+    for table in tables {
+        sqlx::query(&format!("DROP TABLE IF EXISTS {table}"))
+            .execute(pool)
+            .await?;
+    }
+    init_db(pool).await?;
+    Ok(())
 }
 
-async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
+pub async fn init_db(pool: &SqlitePool) -> sqlx::Result<()> {
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS runs (
             run_id INTEGER PRIMARY KEY AUTOINCREMENT,

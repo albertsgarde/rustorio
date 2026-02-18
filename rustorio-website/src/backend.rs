@@ -14,7 +14,7 @@ pub struct LeaderboardEntry {
     pub ticks: u64,
 }
 
-#[server]
+#[server(db: dioxus::server::axum::Extension<sqlx::SqlitePool>)]
 pub async fn get_leaderboard(gamemode: String) -> Result<Vec<LeaderboardEntry>, ServerFnError> {
     let entries: Vec<LeaderboardEntry> = sqlx::query_as(
         "SELECT name, MIN(tick_count) as ticks
@@ -24,20 +24,20 @@ pub async fn get_leaderboard(gamemode: String) -> Result<Vec<LeaderboardEntry>, 
          ORDER BY ticks ASC",
     )
     .bind(gamemode)
-    .fetch_all(server::db())
+    .fetch_all(&db.0)
     .await
     .map_err(|e| ServerFnError::new(format!("{e:#}")))?;
 
     Ok(entries)
 }
 
-#[server]
+#[server(db: dioxus::server::axum::Extension<sqlx::SqlitePool>)]
 pub async fn get_gamemodes() -> Result<Vec<String>, ServerFnError> {
     sqlx::query_scalar(
         "SELECT DISTINCT gamemode
          FROM runs",
     )
-    .fetch_all(server::db())
+    .fetch_all(&db.0)
     .await
     .map_err(|e| ServerFnError::new(format!("{e:#}")))
 }
