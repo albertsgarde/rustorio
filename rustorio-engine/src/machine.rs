@@ -85,13 +85,13 @@ impl<R: RecipeEx> Machine<R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs(&mut self, tick: &Tick) -> &mut R::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::Inputs {
         self.tick(tick);
         &mut self.inputs
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs(&mut self, tick: &Tick) -> &mut R::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::Outputs {
         self.tick(tick);
         &mut self.outputs
     }
