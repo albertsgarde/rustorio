@@ -56,7 +56,7 @@ impl<R: AssemblerRecipe> Assembler<R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs(&mut self, tick: &Tick) -> &mut <R as Recipe>::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::Inputs {
         self.0.inputs(tick)
     }
 
@@ -66,7 +66,7 @@ impl<R: AssemblerRecipe> Assembler<R> {
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs(&mut self, tick: &Tick) -> &mut <R as Recipe>::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::Outputs {
         self.0.outputs(tick)
     }
 
@@ -108,7 +108,7 @@ impl<R: FurnaceRecipe> Furnace<R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs(&mut self, tick: &Tick) -> &mut <R as Recipe>::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::Inputs {
         self.0.inputs(tick)
     }
 
@@ -118,7 +118,7 @@ impl<R: FurnaceRecipe> Furnace<R> {
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs(&mut self, tick: &Tick) -> &mut <R as Recipe>::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::Outputs {
         self.0.outputs(tick)
     }
 
@@ -167,7 +167,7 @@ where
     }
 
     /// Get a mutable reference to input buffers.
-    pub fn inputs(&mut self, tick: &Tick) -> &mut <TechRecipe<T> as Recipe>::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <TechRecipe<T> as Recipe>::Inputs {
         self.0.inputs(tick)
     }
 
@@ -177,7 +177,7 @@ where
     }
 
     /// Get a mutable reference to output buffers.
-    pub fn outputs(&mut self, tick: &Tick) -> &mut <TechRecipe<T> as Recipe>::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <TechRecipe<T> as Recipe>::Outputs {
         self.0.outputs(tick)
     }
 }
