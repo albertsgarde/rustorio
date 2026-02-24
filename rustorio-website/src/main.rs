@@ -41,10 +41,10 @@ fn Home(gamemode: String) -> Element {
     } else {
         gamemode
     };
+    let mut selected_gamemode = use_signal(|| selected_gamemode);
 
-    let cloned_gamemode = selected_gamemode.clone();
     let entries = use_server_future(move || {
-        let gamemode = cloned_gamemode.clone();
+        let gamemode = selected_gamemode.read().clone();
         async move { get_leaderboard(gamemode).await }
     })?;
 
@@ -56,10 +56,11 @@ fn Home(gamemode: String) -> Element {
                     select {
                         class: "mb-4 p-2 border rounded",
                         onchange: move |e: Event<FormData>| {
+                            selected_gamemode.set(e.value().clone());
                             nav.push(Route::Home { gamemode: e.value() });
                         },
                         for mode in modes {
-                            option { value: "{mode}", selected: selected_gamemode == mode, "{mode}" }
+                            option { value: "{mode}", selected: selected_gamemode() == mode, "{mode}" }
                         }
                     }
                 },
