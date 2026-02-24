@@ -63,8 +63,8 @@ impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
 /// Basic machine that can process recipes.
 #[derive(Debug)]
 pub struct Machine<R: Recipe> {
-    inputs: R::Inputs,
-    outputs: R::Outputs,
+    inputs: R::InputResources,
+    outputs: R::OutputResources,
     tick: u64,
     crafting_time: u64,
 }
@@ -85,13 +85,13 @@ impl<R: RecipeEx> Machine<R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::InputResources {
         self.tick(tick);
         &mut self.inputs
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::OutputResources {
         self.tick(tick);
         &mut self.outputs
     }

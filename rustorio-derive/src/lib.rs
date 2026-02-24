@@ -77,11 +77,11 @@ impl RecipeItemList {
     }
 
     fn new_inputs(attr: &Attribute) -> Self {
-        Self::new(attr, "recipe_inputs", "Inputs")
+        Self::new(attr, "recipe_inputs", "InputResources")
     }
 
     fn new_outputs(attr: &Attribute) -> Self {
-        Self::new(attr, "recipe_outputs", "Outputs")
+        Self::new(attr, "recipe_outputs", "OutputResources")
     }
 
     fn generate_recipe_direction(&self) -> TokenStream {

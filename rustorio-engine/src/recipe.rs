@@ -189,16 +189,16 @@ pub trait Recipe {
     const TIME: u64;
 
     /// A tuple of bundles that describes the input resources for one recipe cycle.
-    type InputBundle: MultiBundle<AsResources = Self::Inputs>;
+    type InputBundle: MultiBundle<AsResources = Self::InputResources>;
 
     /// A tuple of bundles that describes the output resources for one recipe cycle.
-    type OutputBundle: MultiBundle<AsResources = Self::Outputs>;
+    type OutputBundle: MultiBundle<AsResources = Self::OutputResources>;
 
     /// A tuple of `Resource<R>` corresponding to the input bundles.
-    type Inputs: std::fmt::Debug + Default;
+    type InputResources: std::fmt::Debug + Default;
 
     /// A tuple of `Resource<R>` corresponding to the output bundles.
-    type Outputs: std::fmt::Debug + Default;
+    type OutputResources: std::fmt::Debug + Default;
 }
 
 #[doc(hidden)]
