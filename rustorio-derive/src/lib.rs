@@ -222,6 +222,8 @@ impl RecipeDetails {
         let implementing_trait_path = quote! {#Crate::recipe::Recipe};
         let inputs_stream = self.inputs.generate_recipe_direction("InputAmountsType");
         let outputs_stream = self.outputs.generate_recipe_direction("OutputAmountsType");
+        let input_bundle_type = self.inputs.generate_bundle_type();
+        let output_bundle_type = self.outputs.generate_bundle_type();
 
         let new_inputs_method_stream = self
             .inputs
@@ -238,24 +240,14 @@ impl RecipeDetails {
             impl #impl_generics #Crate::recipe::Recipe for #name #ty_generics #where_clause {
                 const TIME: u64 = #ticks;
 
+                type InputBundle = #input_bundle_type;
+                type OutputBundle = #output_bundle_type;
+
                 #new_inputs_method_stream
                 #new_outputs_method_stream
 
                 #inputs_stream
                 #outputs_stream
-            }
-        }
-    }
-
-    fn recipe_ex_impl(&self) -> TokenStream {
-        let input_bundle_type = self.inputs.generate_bundle_type();
-        let output_bundle_type = self.outputs.generate_bundle_type();
-        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
-        let name = &self.name;
-        quote! {
-            impl #impl_generics #Crate::recipe::RecipeEx for #name #ty_generics #where_clause {
-                type InputBundle = #input_bundle_type;
-                type OutputBundle = #output_bundle_type;
             }
         }
     }
@@ -266,14 +258,6 @@ pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     let input = parse_macro_input!(input as DeriveInput);
     let recipe_info = RecipeDetails::from_input(input);
     let output = recipe_info.recipe_impl();
-    proc_macro::TokenStream::from(output)
-}
-
-#[proc_macro_derive(RecipeEx, attributes(recipe_inputs, recipe_outputs, recipe_ticks))]
-pub fn derive_recipe_ex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let recipe_info = RecipeDetails::from_input(input);
-    let output = recipe_info.recipe_ex_impl();
     proc_macro::TokenStream::from(output)
 }
 

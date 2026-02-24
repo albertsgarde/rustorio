@@ -1,6 +1,6 @@
 //! Recipes define all item transformations in the game via input items, output items, and time.
 
-pub use rustorio_derive::{Recipe, RecipeEx, recipe_doc};
+pub use rustorio_derive::{Recipe, recipe_doc};
 
 use crate::{
     ResourceType, Sealed,
@@ -188,6 +188,12 @@ pub trait Recipe {
     /// Amount of ticks one cycle of the recipe takes to complete.
     const TIME: u64;
 
+    /// A tuple of bundles that describes the input resources for one recipe cycle.
+    type InputBundle: MultiBundle<AsResources = Self::Inputs>;
+
+    /// A tuple of bundles that describes the output resources for one recipe cycle.
+    type OutputBundle: MultiBundle<AsResources = Self::Outputs>;
+
     /// Typically a tuple of multiple `RecipeTypes`, to define the inputs
     /// for one cycle of the recipe.
     type Inputs: std::fmt::Debug;
@@ -218,33 +224,8 @@ pub trait Recipe {
 }
 
 #[doc(hidden)]
-pub trait RecipeEx: Recipe {
-    /// A type guaranteed to contain exactly the input resources for one recipe cycle.
-    /// Used in handcrafting.
-    type InputBundle: MultiBundleEx<AsResources = Self::Inputs>;
-    /// A type guaranteed to contain exactly the output resources for one recipe cycle.
-    /// Used in handcrafting.
-    type OutputBundle: MultiBundleEx<AsResources = Self::Outputs>;
-
-    /// Factory function to create a new `Self::InputBundle`.
-    fn new_output_bundle() -> Self::OutputBundle {
-        Self::OutputBundle::new_bundle()
-    }
-
-    /// Iterator helper over `Self::Inputs`.
-    fn iter_inputs(
-        items: &mut Self::Inputs,
-    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        Self::InputBundle::iter(items)
-    }
-
-    /// Iterator helper over `Self::Outputs`.
-    fn iter_outputs(
-        items: &mut Self::Outputs,
-    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        Self::OutputBundle::iter(items)
-    }
-}
+pub trait RecipeEx: Recipe<InputBundle: MultiBundleEx, OutputBundle: MultiBundleEx> {}
+impl<R: Recipe<InputBundle: MultiBundleEx, OutputBundle: MultiBundleEx>> RecipeEx for R {}
 
 /// A recipe that can be hand-crafted by the player.
 pub trait HandRecipe: std::fmt::Debug + Sealed + RecipeEx {
@@ -253,6 +234,6 @@ pub trait HandRecipe: std::fmt::Debug + Sealed + RecipeEx {
     fn craft(tick: &mut Tick, inputs: Self::InputBundle) -> Self::OutputBundle {
         let _ = inputs;
         tick.advance_by(Self::TIME);
-        Self::new_output_bundle()
+        Self::OutputBundle::new_bundle()
     }
 }

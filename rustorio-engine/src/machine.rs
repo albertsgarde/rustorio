@@ -9,7 +9,7 @@
 //! ```
 
 use crate::{
-    recipe::{Recipe, RecipeEx},
+    recipe::{MultiBundleEx, Recipe, RecipeEx},
     tick::Tick,
 };
 
@@ -97,11 +97,11 @@ impl<R: RecipeEx> Machine<R> {
     }
 
     fn iter_inputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        R::iter_inputs(&mut self.inputs)
+        <R::InputBundle as MultiBundleEx>::iter(&mut self.inputs)
     }
 
     fn iter_outputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        R::iter_outputs(&mut self.outputs)
+        <R::OutputBundle as MultiBundleEx>::iter(&mut self.outputs)
     }
 
     /// Changes the [`Recipe`](crate::recipe) of the machine.
