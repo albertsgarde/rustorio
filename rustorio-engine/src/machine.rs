@@ -8,6 +8,8 @@
 //! pub struct Assembler<R: AssemblerRecipe>(Machine<R>);
 //! ```
 
+use std::cmp::min;
+
 use crate::{
     recipe::{MultiBundle, Recipe},
     resources::{TokenOfCreation, creation_token},
@@ -66,7 +68,9 @@ impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
 pub struct Machine<R: Recipe> {
     inputs: R::InputResources,
     outputs: R::OutputResources,
+    // Last time the machine was updated.
     tick: TickSnapshot,
+    // Ticks spent crafting since the last bundle was produced. Always smaller than `R::TIME`.
     crafting_time: u64,
 }
 
@@ -149,13 +153,13 @@ impl<R: Recipe> Machine<R> {
         let token = creation_token();
 
         self.crafting_time += time_elapsed;
-        let crafting_time = self.crafting_time;
-        let count = self
-            .iter_inputs(token)
-            .map(|(_, needed, current)| *current / needed)
-            .chain((R::TIME > 0).then(|| (crafting_time / R::TIME).try_into().unwrap()))
-            .min()
-            .unwrap();
+
+        // The number of craftable bundles is bounded by the number of input bundles and the time
+        // elapsed.
+        let mut count = R::InputBundle::bundle_count(&self.inputs);
+        if let Some(crafting_cycles) = self.crafting_time.checked_div(R::TIME) {
+            count = min(count, crafting_cycles.try_into().unwrap());
+        }
 
         for (_, needed, current) in self.iter_inputs(token) {
             *current -= count * needed;
@@ -165,10 +169,7 @@ impl<R: Recipe> Machine<R> {
         }
         self.crafting_time -= u64::from(count) * R::TIME;
 
-        if self
-            .iter_inputs(token)
-            .any(|(_, needed, current)| *current < needed)
-        {
+        if R::InputBundle::bundle_count(&self.inputs) == 0 {
             self.crafting_time = 0;
         }
     }
