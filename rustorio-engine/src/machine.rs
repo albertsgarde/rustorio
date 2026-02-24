@@ -72,8 +72,8 @@ pub struct Machine<R: Recipe> {
 impl<R: RecipeEx> Machine<R> {
     fn new_inner(tick: u64) -> Self {
         Self {
-            inputs: R::new_inputs(),
-            outputs: R::new_outputs(),
+            inputs: Default::default(),
+            outputs: Default::default(),
             tick,
             crafting_time: 0,
         }

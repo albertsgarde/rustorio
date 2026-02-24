@@ -71,19 +71,7 @@ where
     type OutputBundle = Bundle<ResearchPoint<T>, 1>;
 
     type Inputs = <T::InputBundle as MultiBundle>::AsResources;
-    type InputAmountsType = <T::InputBundle as MultiBundle>::AmountsType;
-    const INPUT_AMOUNTS: Self::InputAmountsType = <T::InputBundle as MultiBundle>::AMOUNTS;
     type Outputs = (Resource<ResearchPoint<T>>,);
-    type OutputAmountsType = (u32,);
-    const OUTPUT_AMOUNTS: (u32,) = (1,);
-
-    fn new_inputs() -> Self::Inputs {
-        Default::default()
-    }
-
-    fn new_outputs() -> Self::Outputs {
-        Default::default()
-    }
 }
 
 /// Creates a new `TechRecipe<T>` for use in a `Machine`.

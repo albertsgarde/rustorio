@@ -194,33 +194,11 @@ pub trait Recipe {
     /// A tuple of bundles that describes the output resources for one recipe cycle.
     type OutputBundle: MultiBundle<AsResources = Self::Outputs>;
 
-    /// Typically a tuple of multiple `RecipeTypes`, to define the inputs
-    /// for one cycle of the recipe.
-    type Inputs: std::fmt::Debug;
+    /// A tuple of `Resource<R>` corresponding to the input bundles.
+    type Inputs: std::fmt::Debug + Default;
 
-    /// Typically a tuple of multiple `RecipeTypes`, to define the outputs
-    /// for one cycle of the recipe.
-    type Outputs: std::fmt::Debug;
-
-    /// Factory function to create a new `Self::Inputs` with zero resources.
-    fn new_inputs() -> Self::Inputs;
-
-    /// Factory function to create a new `Self::Outputs` with zero resources.
-    fn new_outputs() -> Self::Outputs;
-
-    /// The type for `Self::InputAmountsType`, which is used to allow users to
-    /// access the input amount for each of the input resource types, per recipe cycle.
-    type InputAmountsType: std::fmt::Debug;
-
-    /// Amount for each of the input resource types, per recipe cycle.
-    const INPUT_AMOUNTS: Self::InputAmountsType;
-
-    /// The type for `Self::OuptutAmountsType`, which is used to allow users to
-    /// access the output amount for each of the output resource types, per recipe cycle.
-    type OutputAmountsType: std::fmt::Debug;
-
-    /// Amount for each of the output resource types, per recipe cycle.
-    const OUTPUT_AMOUNTS: Self::OutputAmountsType;
+    /// A tuple of `Resource<R>` corresponding to the output bundles.
+    type Outputs: std::fmt::Debug + Default;
 }
 
 #[doc(hidden)]
