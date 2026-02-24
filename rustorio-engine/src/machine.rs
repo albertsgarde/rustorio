@@ -62,25 +62,27 @@ impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
 
 /// Basic machine that can process recipes.
 #[derive(Debug)]
-pub struct Machine<R: Recipe> {
+pub struct Machine<'tick, R: Recipe> {
     inputs: R::Inputs,
     outputs: R::Outputs,
     tick: u64,
     crafting_time: u64,
+    _marker: std::marker::PhantomData<&'tick R>,
 }
 
-impl<R: RecipeEx> Machine<R> {
+impl<'tick, R: RecipeEx> Machine<'tick, R> {
     fn new_inner(tick: u64) -> Self {
         Self {
             inputs: R::new_inputs(),
             outputs: R::new_outputs(),
             tick,
             crafting_time: 0,
+            _marker: std::marker::PhantomData,
         }
     }
 
     /// Build a new machine.
-    pub fn new(tick: &Tick) -> Self {
+    pub fn new(tick: &Tick<'tick, '_>) -> Self {
         Self::new_inner(tick.cur())
     }
 
@@ -109,7 +111,7 @@ impl<R: RecipeEx> Machine<R> {
     pub fn change_recipe<R2: RecipeEx>(
         mut self,
         recipe: R2,
-    ) -> Result<Machine<R2>, MachineNotEmptyError<Self>> {
+    ) -> Result<Machine<'tick, R2>, MachineNotEmptyError<Self>> {
         let _ = recipe;
         fn find_nonempty<'a>(
             mut iter: impl Iterator<Item = (&'static str, u32, &'a mut u32)>,

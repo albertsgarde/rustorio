@@ -11,6 +11,7 @@ use crate::{
     ResourceType, Sealed,
     recipe::{MultiBundle, MultiBundleEx, Recipe, RecipeEx},
     resources::{Bundle, Resource},
+    tick::Tick,
 };
 
 /// A technology can be unlocked out by calling the `research` method with the required science packs.
@@ -58,11 +59,11 @@ impl<T: Technology> ResourceType for ResearchPoint<T> {
 
 /// A recipe for producing research points for specific technologies.
 #[derive(Debug)]
-pub struct TechRecipe<T: Technology> {
-    _marker: PhantomData<T>,
+pub struct TechRecipe<'tick, T: Technology> {
+    _marker: PhantomData<&'tick T>,
 }
 
-impl<T> Recipe for TechRecipe<T>
+impl<'tick, T> Recipe for TechRecipe<'tick, T>
 where
     T: Technology,
 {
@@ -70,7 +71,7 @@ where
     type Inputs = <T::InputBundle as MultiBundle>::AsResources;
     type InputAmountsType = <T::InputBundle as MultiBundle>::AmountsType;
     const INPUT_AMOUNTS: Self::InputAmountsType = <T::InputBundle as MultiBundle>::AMOUNTS;
-    type Outputs = (Resource<ResearchPoint<T>>,);
+    type Outputs = (Resource<'tick, ResearchPoint<T>>,);
 
     type OutputAmountsType = (u32,);
 
@@ -85,14 +86,14 @@ where
     }
 }
 
-impl<T: Technology> RecipeEx for TechRecipe<T> {
+impl<'tick, T: Technology> RecipeEx for TechRecipe<'tick, T> {
     type InputBundle = T::InputBundle;
-    type OutputBundle = Bundle<ResearchPoint<T>, 1>;
+    type OutputBundle = Bundle<'tick, ResearchPoint<T>, 1>;
 }
 
 /// Creates a new `TechRecipe<T>` for use in a `Machine`.
 /// Should not be reexported, as that would allow players to create research points for researches they have not unlocked yet.
-pub const fn tech_recipe<T: Technology>() -> TechRecipe<T> {
+pub const fn tech_recipe<'tick, T: Technology>() -> TechRecipe<'tick, T> {
     TechRecipe {
         _marker: PhantomData,
     }

@@ -5,7 +5,7 @@ pub use rustorio_derive::{Recipe, RecipeEx, recipe_doc};
 use crate::{
     ResourceType, Sealed,
     resources::{Bundle, Resource},
-    tick::Tick,
+    tick::MainTick,
 };
 
 /// A tuple of `Bundle<R, N>`.
@@ -34,9 +34,30 @@ pub trait MultiBundleEx: MultiBundle {
     fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
 }
 
+impl MultiBundle for () {
+    type AsResources = ();
+    type AmountsType = ();
+    const AMOUNTS: Self::AmountsType = ();
+
+    fn bundle_count(_: &Self::AsResources) -> u32 {
+        u32::MAX
+    }
+    fn add(_: &mut Self::AsResources, _: Self) {}
+    fn bundle(_: &mut Self::AsResources) -> Option<Self> {
+        Some(())
+    }
+}
+
+impl MultiBundleEx for () {
+    fn new_bundle() -> Self {}
+    fn iter(_: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
+        std::iter::empty()
+    }
+}
+
 // Special untupled case, for e.g. tech recipes that don't return a tuple.
-impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
-    type AsResources = (Resource<R1>,);
+impl<'tick, R1: ResourceType, const N1: u32> MultiBundle for Bundle<'tick, R1, N1> {
+    type AsResources = (Resource<'tick, R1>,);
 
     type AmountsType = (u32,);
     const AMOUNTS: Self::AmountsType = (N1,);
@@ -51,7 +72,7 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
         <(Self,) as MultiBundle>::bundle(res).map(|(r,)| r)
     }
 }
-impl<R1: ResourceType, const N1: u32> MultiBundleEx for Bundle<R1, N1> {
+impl<'tick, R1: ResourceType, const N1: u32> MultiBundleEx for Bundle<'tick, R1, N1> {
     fn new_bundle() -> Self {
         <(Self,) as MultiBundleEx>::new_bundle().0
     }
@@ -69,19 +90,19 @@ macro_rules! replace_expr {
 macro_rules! impl_multi_bundle {
     ($($n:tt $ty:ident $amount:ident),*) => {
         #[allow(unused)]
-        impl<
+        impl<'tick,
             $(
                 $ty: ResourceType,
                 const $amount: u32,
             )*
         > MultiBundle for
             (
-                $(Bundle<$ty, $amount>,)*
+                $(Bundle<'tick, $ty, $amount>,)*
             )
         {
             type AsResources =
                 (
-                    $(Resource<$ty>,)*
+                    $(Resource<'tick, $ty>,)*
                 );
 
             type AmountsType =
@@ -122,9 +143,9 @@ macro_rules! impl_multi_bundle {
         }
 
         #[allow(unused)]
-        impl<
+        impl<'tick,
             $($ty: ResourceType, const $amount: u32),*
-        > MultiBundleEx for ($(Bundle<$ty, $amount>,)*)
+        > MultiBundleEx for ($(Bundle<'tick, $ty, $amount>,)*)
         {
             #[allow(clippy::unused_unit)]
             fn new_bundle() -> Self {
@@ -150,7 +171,6 @@ macro_rules! impl_multi_bundle {
     };
 }
 
-impl_multi_bundle!();
 impl_multi_bundle!(0 R1 N1);
 impl_multi_bundle!(0 R1 N1, 1 R2 N2);
 impl_multi_bundle!(0 R1 N1, 1 R2 N2, 2 R3 N3);
@@ -250,7 +270,7 @@ pub trait RecipeEx: Recipe {
 pub trait HandRecipe: std::fmt::Debug + Sealed + RecipeEx {
     /// Crafts the recipe by consuming the input bundle and producing the output bundle.
     /// Advances the provided `Tick` by the recipe's time.
-    fn craft(tick: &mut Tick, inputs: Self::InputBundle) -> Self::OutputBundle {
+    fn craft(tick: &mut MainTick, inputs: Self::InputBundle) -> Self::OutputBundle {
         let _ = inputs;
         tick.advance_by(Self::TIME);
         Self::new_output_bundle()

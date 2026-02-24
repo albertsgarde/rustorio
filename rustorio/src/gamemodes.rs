@@ -19,7 +19,7 @@ use crate::{
 /// Starting resources for the tutorial game mode.
 pub struct TutorialStartingResources {
     /// Initial iron bundle.
-    pub iron: Bundle<Iron, 10>,
+    pub iron: Bundle<'static, Iron, 10>,
     /// Initial territory to mine iron ore from.
     pub iron_territory: Territory<IronOre>,
     /// Initial territory to mine copper ore from.
@@ -44,7 +44,7 @@ pub struct Tutorial;
 
 impl GameMode for Tutorial {
     type StartingResources = TutorialStartingResources;
-    type VictoryResources = Bundle<Copper, 4>;
+    type VictoryResources = Bundle<'static, Copper, 4>;
 
     const NAME: &str = "tutorial";
 }
@@ -52,7 +52,7 @@ impl GameMode for Tutorial {
 /// Starting resources for the standard game mode. Includes 10 iron and the ability to research points.
 pub struct StandardStartingResources {
     /// Initial iron bundle.
-    pub iron: Bundle<Iron, 10>,
+    pub iron: Bundle<'static, Iron, 10>,
     /// Initial territory rich in iron ore.
     pub iron_territory: Territory<IronOre>,
     /// Initial territory rich in copper ore.
@@ -76,7 +76,7 @@ pub struct Standard;
 
 impl GameMode for Standard {
     type StartingResources = StandardStartingResources;
-    type VictoryResources = Bundle<Point, 200>;
+    type VictoryResources = Bundle<'static, Point, 200>;
 
     const NAME: &str = "standard";
 }

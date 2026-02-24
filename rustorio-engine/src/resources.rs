@@ -11,7 +11,7 @@ use std::{
     ops::{Add, AddAssign},
 };
 
-use crate::Sealed;
+use crate::{Sealed, tick::Tick};
 
 /// A type that represents a specific kind of resource in the game.
 /// Implementors of this trait represent different resource types, such as iron, copper, or science packs.
@@ -95,34 +95,36 @@ where
 /// A [`Resource`] object can be split into smaller parts, combined or [`Bundle`]s can be extracted from them.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use = "This resource is being dropped without being used. If this is intentional, use the `let _ = resource;` pattern to silence this warning."]
-pub struct Resource<R>
+pub struct Resource<'tick, R>
 where
     R: ResourceType,
 {
     /// The amount of the resource contained in this [`Resource`].
     pub(crate) amount: u32,
-    phantom: PhantomData<R>,
+    phantom: PhantomData<&'tick R>,
 }
 
 /// Creates a new [`Resource`] with the specified amount.
 /// Should not be reexported in mods.
-pub const fn resource<R>(amount: u32) -> Resource<R>
+pub const fn resource<'tick, R>(tick: &Tick<'tick, '_>, amount: u32) -> Resource<'tick, R>
 where
     R: ResourceType,
 {
+    let _ = tick;
     Resource::new(amount)
 }
 
 /// Returns a mutable reference to the amount of resource contained in the given [`Resource`].
 /// Should not be reexported in mods.
-pub const fn resource_amount_mut<R>(resource: &mut Resource<R>) -> &mut u32
+pub const fn resource_amount_mut<'r, 'tick, R>(resource: &'r mut Resource<'tick, R>) -> &'r mut u32
 where
     R: ResourceType,
+    'tick: 'r,
 {
     resource.amount_mut()
 }
 
-impl<R> Resource<R>
+impl<'tick, R> Resource<'tick, R>
 where
     R: ResourceType,
 {
@@ -213,7 +215,7 @@ where
     /// Takes a specified amount of resources from this [`Resource`] and puts it into a [`Bundle`].
     pub const fn bundle<const AMOUNT: u32>(
         &mut self,
-    ) -> Result<Bundle<R, AMOUNT>, InsufficientResourceError<R>> {
+    ) -> Result<Bundle<'tick, R, AMOUNT>, InsufficientResourceError<R>> {
         if let Some(remaining) = self.amount.checked_sub(AMOUNT) {
             self.amount = remaining;
             Ok(Bundle::new())
@@ -223,7 +225,7 @@ where
     }
 }
 
-impl<R> Default for Resource<R>
+impl<'tick, R> Default for Resource<'tick, R>
 where
     R: ResourceType,
 {
@@ -232,7 +234,7 @@ where
     }
 }
 
-impl<R> Display for Resource<R>
+impl<'tick, R> Display for Resource<'tick, R>
 where
     R: ResourceType,
 {
@@ -241,7 +243,7 @@ where
     }
 }
 
-impl<R> PartialOrd<u32> for Resource<R>
+impl<'tick, R> PartialOrd<u32> for Resource<'tick, R>
 where
     R: ResourceType,
 {
@@ -250,7 +252,7 @@ where
     }
 }
 
-impl<R> PartialEq<u32> for Resource<R>
+impl<'tick, R> PartialEq<u32> for Resource<'tick, R>
 where
     R: ResourceType,
 {
@@ -259,25 +261,25 @@ where
     }
 }
 
-impl<R> PartialOrd<Resource<R>> for u32
+impl<'tick, R> PartialOrd<Resource<'tick, R>> for u32
 where
     R: ResourceType,
 {
-    fn partial_cmp(&self, other: &Resource<R>) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Resource<'tick, R>) -> Option<std::cmp::Ordering> {
         Some(self.cmp(&other.amount))
     }
 }
 
-impl<R> PartialEq<Resource<R>> for u32
+impl<'tick, R> PartialEq<Resource<'tick, R>> for u32
 where
     R: ResourceType,
 {
-    fn eq(&self, other: &Resource<R>) -> bool {
+    fn eq(&self, other: &Resource<'tick, R>) -> bool {
         *self == other.amount
     }
 }
 
-impl<R> AddAssign for Resource<R>
+impl<'tick, R> AddAssign for Resource<'tick, R>
 where
     R: ResourceType,
 {
@@ -286,7 +288,7 @@ where
     }
 }
 
-impl<R> Add for Resource<R>
+impl<'tick, R> Add for Resource<'tick, R>
 where
     R: ResourceType,
 {
@@ -298,7 +300,7 @@ where
     }
 }
 
-impl<R> Sum for Resource<R>
+impl<'tick, R> Sum for Resource<'tick, R>
 where
     R: ResourceType,
 {
@@ -311,16 +313,16 @@ where
 /// A [`Bundle`] can be used to build structures or as input for recipes.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use = "This bundle is being dropped without being used. If this is intentional, use the `let _ = bundle;` pattern to silence this warning."]
-pub struct Bundle<R, const AMOUNT: u32>
+pub struct Bundle<'tick, R, const AMOUNT: u32>
 where
     R: ResourceType,
 {
-    dummy: PhantomData<R>,
+    dummy: PhantomData<&'tick R>,
 }
 
 /// Creates a new [`Bundle`] with the specified resource type and amount.
 /// Should not be reexported in mods.
-pub fn bundle<R, const AMOUNT: u32>() -> Bundle<R, AMOUNT>
+pub fn bundle<'tick, R, const AMOUNT: u32>() -> Bundle<'tick, R, AMOUNT>
 where
     R: ResourceType,
 {
@@ -333,7 +335,7 @@ pub struct Assert<const OK: bool>;
 pub trait IsTrue {}
 impl IsTrue for Assert<true> {}
 
-impl<R, const AMOUNT: u32> Bundle<R, AMOUNT>
+impl<'tick, R, const AMOUNT: u32> Bundle<'tick, R, AMOUNT>
 where
     R: ResourceType,
 {
@@ -353,7 +355,7 @@ where
     /// The sum of `AMOUNT1` and `AMOUNT2` must equal the amount of this [`Bundle`].
     pub const fn split<const AMOUNT1: u32, const AMOUNT2: u32>(
         self,
-    ) -> (Bundle<R, AMOUNT1>, Bundle<R, AMOUNT2>)
+    ) -> (Bundle<'tick, R, AMOUNT1>, Bundle<'tick, R, AMOUNT2>)
     where
         Assert<{ AMOUNT1 + AMOUNT2 == AMOUNT }>: IsTrue,
     {
@@ -361,96 +363,96 @@ where
     }
 
     /// Converts this [`Bundle`] into a [`Resource`] with the same resource type and amount.
-    pub const fn to_resource(self) -> Resource<R> {
+    pub const fn to_resource(self) -> Resource<'tick, R> {
         Resource::new(AMOUNT)
     }
 }
 
-impl<R, const AMOUNT: u32> AddAssign<Bundle<R, AMOUNT>> for Resource<R>
+impl<'tick, R, const AMOUNT: u32> AddAssign<Bundle<'tick, R, AMOUNT>> for Resource<'tick, R>
 where
     R: ResourceType,
 {
-    fn add_assign(&mut self, bundle: Bundle<R, AMOUNT>) {
+    fn add_assign(&mut self, bundle: Bundle<'tick, R, AMOUNT>) {
         let _ = bundle;
         self.amount += AMOUNT;
     }
 }
 
-impl<R, const AMOUNT: u32> Add<Bundle<R, AMOUNT>> for Resource<R>
+impl<'tick, R, const AMOUNT: u32> Add<Bundle<'tick, R, AMOUNT>> for Resource<'tick, R>
 where
     R: ResourceType,
 {
     type Output = Self;
 
-    fn add(mut self, rhs: Bundle<R, AMOUNT>) -> Self::Output {
+    fn add(mut self, rhs: Bundle<'tick, R, AMOUNT>) -> Self::Output {
         self += rhs;
         self
     }
 }
 
-impl<R, const AMOUNT: u32> Add<Resource<R>> for Bundle<R, AMOUNT>
+impl<'tick, R, const AMOUNT: u32> Add<Resource<'tick, R>> for Bundle<'tick, R, AMOUNT>
 where
     R: ResourceType,
 {
-    type Output = Resource<R>;
+    type Output = Resource<'tick, R>;
 
-    fn add(self, mut rhs: Resource<R>) -> Self::Output {
+    fn add(self, mut rhs: Resource<'tick, R>) -> Self::Output {
         rhs += self;
         rhs
     }
 }
 
-impl<R, const AMOUNT_LHS: u32, const AMOUNT_RHS: u32> Add<Bundle<R, AMOUNT_RHS>>
-    for Bundle<R, AMOUNT_LHS>
+impl<'tick, R, const AMOUNT_LHS: u32, const AMOUNT_RHS: u32> Add<Bundle<'tick, R, AMOUNT_RHS>>
+    for Bundle<'tick, R, AMOUNT_LHS>
 where
     R: ResourceType,
     [(); { AMOUNT_LHS + AMOUNT_RHS } as usize]:,
 {
-    type Output = Bundle<R, { AMOUNT_LHS + AMOUNT_RHS }>;
+    type Output = Bundle<'tick, R, { AMOUNT_LHS + AMOUNT_RHS }>;
 
-    fn add(self, rhs: Bundle<R, AMOUNT_RHS>) -> Self::Output {
+    fn add(self, rhs: Bundle<'tick, R, AMOUNT_RHS>) -> Self::Output {
         let _ = rhs;
         Bundle::new()
     }
 }
 
-impl<R, const AMOUNT: u32> PartialEq<Bundle<R, AMOUNT>> for Resource<R>
+impl<'tick, R, const AMOUNT: u32> PartialEq<Bundle<'tick, R, AMOUNT>> for Resource<'tick, R>
 where
     R: ResourceType,
 {
-    fn eq(&self, _other: &Bundle<R, AMOUNT>) -> bool {
+    fn eq(&self, _other: &Bundle<'tick, R, AMOUNT>) -> bool {
         self.amount == AMOUNT
     }
 }
 
-impl<R, const AMOUNT: u32> PartialEq<Resource<R>> for Bundle<R, AMOUNT>
+impl<'tick, R, const AMOUNT: u32> PartialEq<Resource<'tick, R>> for Bundle<'tick, R, AMOUNT>
 where
     R: ResourceType,
 {
-    fn eq(&self, other: &Resource<R>) -> bool {
+    fn eq(&self, other: &Resource<'tick, R>) -> bool {
         AMOUNT == other.amount
     }
 }
 
-impl<R, const AMOUNT: u32> PartialOrd<Bundle<R, AMOUNT>> for Resource<R>
+impl<'tick, R, const AMOUNT: u32> PartialOrd<Bundle<'tick, R, AMOUNT>> for Resource<'tick, R>
 where
     R: ResourceType,
 {
-    fn partial_cmp(&self, _other: &Bundle<R, AMOUNT>) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, _other: &Bundle<'tick, R, AMOUNT>) -> Option<std::cmp::Ordering> {
         Some(self.amount.cmp(&AMOUNT))
     }
 }
 
-impl<R, const AMOUNT: u32> PartialOrd<Resource<R>> for Bundle<R, AMOUNT>
+impl<'tick, R, const AMOUNT: u32> PartialOrd<Resource<'tick, R>> for Bundle<'tick, R, AMOUNT>
 where
     R: ResourceType,
 {
-    fn partial_cmp(&self, other: &Resource<R>) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Resource<'tick, R>) -> Option<std::cmp::Ordering> {
         Some(AMOUNT.cmp(&other.amount))
     }
 }
 
-impl<R, const AMOUNT: u32> PartialEq<u32> for Bundle<R, AMOUNT>
+impl<'tick, R, const AMOUNT: u32> PartialEq<u32> for Bundle<'tick, R, AMOUNT>
 where
     R: ResourceType,
 {
@@ -459,16 +461,16 @@ where
     }
 }
 
-impl<R, const AMOUNT: u32> PartialEq<Bundle<R, AMOUNT>> for u32
+impl<'tick, R, const AMOUNT: u32> PartialEq<Bundle<'tick, R, AMOUNT>> for u32
 where
     R: ResourceType,
 {
-    fn eq(&self, _other: &Bundle<R, AMOUNT>) -> bool {
+    fn eq(&self, _other: &Bundle<'tick, R, AMOUNT>) -> bool {
         *self == AMOUNT
     }
 }
 
-impl<R, const AMOUNT: u32> PartialOrd<u32> for Bundle<R, AMOUNT>
+impl<'tick, R, const AMOUNT: u32> PartialOrd<u32> for Bundle<'tick, R, AMOUNT>
 where
     R: ResourceType,
 {
@@ -477,20 +479,20 @@ where
     }
 }
 
-impl<R, const AMOUNT: u32> PartialOrd<Bundle<R, AMOUNT>> for u32
+impl<'tick, R, const AMOUNT: u32> PartialOrd<Bundle<'tick, R, AMOUNT>> for u32
 where
     R: ResourceType,
 {
-    fn partial_cmp(&self, _other: &Bundle<R, AMOUNT>) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, _other: &Bundle<'tick, R, AMOUNT>) -> Option<std::cmp::Ordering> {
         Some(self.cmp(&AMOUNT))
     }
 }
 
-impl<R, const AMOUNT: u32> From<Bundle<R, AMOUNT>> for Resource<R>
+impl<'tick, R, const AMOUNT: u32> From<Bundle<'tick, R, AMOUNT>> for Resource<'tick, R>
 where
     R: ResourceType,
 {
-    fn from(bundle: Bundle<R, AMOUNT>) -> Self {
+    fn from(bundle: Bundle<'tick, R, AMOUNT>) -> Self {
         let _ = bundle;
         Resource::new(AMOUNT)
     }

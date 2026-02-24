@@ -17,7 +17,7 @@ trait GuideTopic {
     fn hint() -> &'static str;
 }
 
-impl GuideTopic for Tick {
+impl GuideTopic for Tick<'_, '_> {
     fn hint() -> &'static str {
         "The `Tick` object you are given handles the passage of time in the game. \
         You can use methods like `Tick::advance` or `Tick::advance_until` to make time pass, which is necessary for buildings to process resources. \
@@ -41,7 +41,7 @@ impl GuideTopic for Miner {
     }
 }
 
-impl GuideTopic for Resource<Iron> {
+impl GuideTopic for Resource<'_, Iron> {
     fn hint() -> &'static str {
         "In this tutorial you start with 10 iron. \
         You can use iron to build buildings like Furnaces and Assemblers.
@@ -51,7 +51,7 @@ Try building a Furnace using `Furnace::build`. \
     }
 }
 
-impl<R: FurnaceRecipe> GuideTopic for Furnace<R> {
+impl<R: FurnaceRecipe> GuideTopic for Furnace<'_, R> {
     fn hint() -> &'static str {
         "Congratulations on building your first Furnace! If you haven't already, mine some copper ore using `Territory::hand_mine`. \
         You can access the input buffers of the furnace using `Furnace::inputs`, which allows you to add ore. \
@@ -60,7 +60,7 @@ impl<R: FurnaceRecipe> GuideTopic for Furnace<R> {
     }
 }
 
-impl GuideTopic for Resource<CopperOre> {
+impl GuideTopic for Resource<'_, CopperOre> {
     fn hint() -> &'static str {
         "Great job on mining some copper ore! Put it in a Furnace by adding it to `Furnace::inputs`, then advance time using `Tick::advance` to smelt the ore into copper ingots. \
         Finally, extract the ingots from the furnace's output buffers using `Furnace::outputs`.
@@ -69,14 +69,14 @@ If you don't have a Furnace yet, build one using `Furnace::build`, and use the `
     }
 }
 
-impl GuideTopic for Resource<IronOre> {
+impl GuideTopic for Resource<'_, IronOre> {
     fn hint() -> &'static str {
         "Good job on figuring out how to mine iron ore! \
         You can smelt the iron ore into iron ingots using a Furnace, but you won't need to for this tutorial. Instead, try mining some copper ore using `Territory::hand_mine`."
     }
 }
 
-impl GuideTopic for Resource<Copper> {
+impl GuideTopic for Resource<'_, Copper> {
     fn hint() -> &'static str {
         "Awesome! You've made some copper ingots. \
         To win the tutorial, you need to make 4 copper ingots. \
@@ -93,12 +93,12 @@ where
     }
 }
 
-impl<Content: ResourceType, const AMOUNT: u32> GuideTopic for Bundle<Content, AMOUNT>
+impl<'t, Content: ResourceType, const AMOUNT: u32> GuideTopic for Bundle<'t, Content, AMOUNT>
 where
-    Resource<Content>: GuideTopic,
+    Resource<'t, Content>: GuideTopic,
 {
     fn hint() -> &'static str {
-        <Resource<Content> as GuideTopic>::hint()
+        <Resource<'t, Content> as GuideTopic>::hint()
     }
 }
 

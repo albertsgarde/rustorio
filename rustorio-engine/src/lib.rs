@@ -13,6 +13,7 @@ pub mod machine;
 pub mod recipe;
 pub mod research;
 pub mod resources;
+mod subfactory;
 mod tick;
 
 use std::{io::Write, net::TcpStream, sync::Once};
@@ -22,13 +23,15 @@ use rustorio_common::cli::{PORT_ENV_NAME, PlayOutput};
 pub use crate::resources::{ResourceType, bundle, resource};
 use crate::{
     gamemodes::{GameMode, StartingResources},
-    tick::Tick,
+    tick::MainTick,
 };
 
 static ONCE: Once = Once::new();
 
 /// Runs your play. If it is run multiple times, it will panic. This is to prevent using multiple threads to cheat.
-pub fn play<G: GameMode>(main: fn(Tick, G::StartingResources) -> (Tick, G::VictoryResources)) -> ! {
+pub fn play<G: GameMode>(
+    main: fn(MainTick, G::StartingResources) -> (MainTick, G::VictoryResources),
+) -> ! {
     let mut call_once_ran = false;
     ONCE.call_once(|| call_once_ran = true);
     if !call_once_ran {
@@ -36,7 +39,7 @@ pub fn play<G: GameMode>(main: fn(Tick, G::StartingResources) -> (Tick, G::Victo
             "play() can only be called once per program execution to prevent cheating via multithreading."
         );
     }
-    let tick = Tick::start();
+    let tick = MainTick::start();
     let start_resources = G::StartingResources::init(&tick);
     let (tick, _points) = main(tick, start_resources);
     if let Ok(port) = std::env::var(PORT_ENV_NAME) {
@@ -79,6 +82,7 @@ pub mod mod_reexports {
         recipe::{HandRecipe, Recipe},
         research::{ResearchPoint, Technology},
         resources::{Bundle, InsufficientResourceError, Resource, ResourceType},
+        subfactory::{Subfactory, SubfactoryContents},
         tick::Tick,
     };
 }
