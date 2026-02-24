@@ -9,7 +9,7 @@
 //! ```
 
 use crate::{
-    recipe::{MultiBundleEx, Recipe, RecipeEx},
+    recipe::{MultiBundle, Recipe},
     resources::{EngineToken, engine_token},
     tick::Tick,
 };
@@ -70,7 +70,7 @@ pub struct Machine<R: Recipe> {
     crafting_time: u64,
 }
 
-impl<R: RecipeEx> Machine<R> {
+impl<R: Recipe> Machine<R> {
     fn new_inner(tick: u64) -> Self {
         Self {
             inputs: Default::default(),
@@ -102,19 +102,19 @@ impl<R: RecipeEx> Machine<R> {
         &'a mut self,
         tk: &'a EngineToken,
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
-        <R::InputBundle as MultiBundleEx>::iter(tk, &mut self.inputs)
+        <R::InputBundle as MultiBundle>::iter(tk, &mut self.inputs)
     }
 
     fn iter_outputs<'a>(
         &'a mut self,
         tk: &'a EngineToken,
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
-        <R::OutputBundle as MultiBundleEx>::iter(tk, &mut self.outputs)
+        <R::OutputBundle as MultiBundle>::iter(tk, &mut self.outputs)
     }
 
     /// Changes the [`Recipe`](crate::recipe) of the machine.
     /// Returns the original machine if the machine has any inputs or outputs.
-    pub fn change_recipe<R2: RecipeEx>(
+    pub fn change_recipe<R2: Recipe>(
         mut self,
         recipe: R2,
     ) -> Result<Machine<R2>, MachineNotEmptyError<Self>> {
