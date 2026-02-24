@@ -10,7 +10,7 @@
 use rustorio_engine::{
     machine::{Machine, MachineNotEmptyError},
     recipe::{Recipe, RecipeEx},
-    research::{TechRecipe, Technology, TechnologyEx, tech_recipe},
+    research::{TechRecipe, Technology, tech_recipe},
 };
 
 use crate::{
@@ -172,8 +172,8 @@ where
     }
 
     /// Amount of each input resource needed for one recipe cycle
-    pub const fn input_amounts(&self) -> <T as TechnologyEx>::InputAmountsType {
-        <T as TechnologyEx>::INPUT_AMOUNTS
+    pub const fn input_amounts(&self) -> <TechRecipe<T> as Recipe>::InputAmountsType {
+        <TechRecipe<T> as Recipe>::INPUT_AMOUNTS
     }
 
     /// Get a mutable reference to output buffers.

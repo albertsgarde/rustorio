@@ -9,7 +9,7 @@ pub use rustorio_derive::{TechnologyEx, technology_doc};
 
 use crate::{
     ResourceType, Sealed,
-    recipe::{Recipe, RecipeEx},
+    recipe::{MultiBundle, MultiBundleEx, Recipe, RecipeEx},
     resources::{Bundle, Resource},
 };
 
@@ -34,28 +34,13 @@ pub trait Technology: Sealed + Debug + Sized + TechnologyEx {
 /// A trait handling the implementation details for a technology. Should only be implemented via the `#[derive(TechnologyEx)]` macro.
 #[doc(hidden)]
 pub trait TechnologyEx {
-    /// The inputs needed to create one research point for this technology.
-    /// Typically a tuple of multiple `RecipeItem`s.
-    type Inputs: Debug;
-    /// The type for `Self::InputAmountsType`, which is used to allow users to
-    /// access the input amount for each of the input resource types, per recipe cycle.
-    type InputAmountsType: Debug;
     /// A type guaranteed to contain exactly the input resources for one research point.
     /// Used in hand crafting.
-    type InputBundle: Debug;
-    /// Amount for each of the input resource types, per recipe cycle.
-    const INPUT_AMOUNTS: Self::InputAmountsType;
+    type InputBundle: MultiBundleEx;
     /// The amount of ticks it takes to create one research point for this technology.
     const POINT_RECIPE_TIME: u64;
     /// How many of this technology's research points (`ResearchPoint<T>`) are needed to complete the research.
     const REQUIRED_RESEARCH_POINTS_EX: u32;
-
-    /// Factory function to create a new `Self::Inputs` with zero resources.
-    fn new_inputs() -> Self::Inputs;
-
-    /// Iterator helper over `Self::Inputs`.
-    fn iter_inputs(items: &mut Self::Inputs)
-    -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
 }
 
 /// A resource type representing one research point for a specific `Technology`.
@@ -82,9 +67,9 @@ where
     T: Technology,
 {
     const TIME: u64 = T::POINT_RECIPE_TIME;
-    type Inputs = T::Inputs;
-    type InputAmountsType = T::InputAmountsType;
-    const INPUT_AMOUNTS: Self::InputAmountsType = T::INPUT_AMOUNTS;
+    type Inputs = <T::InputBundle as MultiBundle>::AsResources;
+    type InputAmountsType = <T::InputBundle as MultiBundle>::AmountsType;
+    const INPUT_AMOUNTS: Self::InputAmountsType = <T::InputBundle as MultiBundle>::AMOUNTS;
     type Outputs = (Resource<ResearchPoint<T>>,);
 
     type OutputAmountsType = (u32,);
@@ -92,33 +77,17 @@ where
     const OUTPUT_AMOUNTS: (u32,) = (1,);
 
     fn new_inputs() -> Self::Inputs {
-        T::new_inputs()
+        Default::default()
     }
 
     fn new_outputs() -> Self::Outputs {
-        (Resource::new_empty(),)
+        Default::default()
     }
 }
 
 impl<T: Technology> RecipeEx for TechRecipe<T> {
     type InputBundle = T::InputBundle;
     type OutputBundle = Bundle<ResearchPoint<T>, 1>;
-
-    fn new_output_bundle() -> Self::OutputBundle {
-        Bundle::<ResearchPoint<T>, 1>::new()
-    }
-
-    fn iter_inputs(
-        items: &mut Self::Inputs,
-    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        T::iter_inputs(items)
-    }
-
-    fn iter_outputs(
-        items: &mut Self::Outputs,
-    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        [(ResearchPoint::<T>::NAME, 1u32, &mut items.0.amount)].into_iter()
-    }
 }
 
 /// Creates a new `TechRecipe<T>` for use in a `Machine`.

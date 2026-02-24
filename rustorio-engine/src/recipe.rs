@@ -2,7 +2,158 @@
 
 pub use rustorio_derive::{Recipe, RecipeEx, recipe_doc};
 
-use crate::{Sealed, tick::Tick};
+use crate::{
+    ResourceType, Sealed,
+    resources::{Bundle, Resource},
+    tick::Tick,
+};
+
+/// A tuple of `Bundle<R, N>`.
+pub trait MultiBundle: Sized + std::fmt::Debug {
+    /// The corresponding tuple of `Resource<R>`.
+    type AsResources: Default + std::fmt::Debug;
+
+    /// A tuple of `u32`, one for each resource; used for `AMOUNTS`.
+    type AmountsType: std::fmt::Debug;
+    /// Amount for each of the input resource types; used to help inspect the `Self` tuple.
+    const AMOUNTS: Self::AmountsType;
+
+    /// Count the number of bundle tuples available in the given resource tuple.
+    fn bundle_count(res: &Self::AsResources) -> u32;
+    /// Add the bundle tuple to the resource tuple.
+    fn add(res: &mut Self::AsResources, bundle: Self);
+    /// Pop a bundle tuple from a resource tuple, if there are enough resources.
+    fn bundle(res: &mut Self::AsResources) -> Option<Self>;
+}
+
+#[doc(hidden)]
+pub trait MultiBundleEx: MultiBundle {
+    /// Factory function to create a new bundle tuple.
+    fn new_bundle() -> Self;
+    /// Iterate over the resources, giving direct mutable access to the amounts.
+    fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
+}
+
+// Special untupled case, for e.g. tech recipes that don't return a tuple.
+impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
+    type AsResources = (Resource<R1>,);
+
+    type AmountsType = (u32,);
+    const AMOUNTS: Self::AmountsType = (N1,);
+
+    fn bundle_count(res: &Self::AsResources) -> u32 {
+        <(Self,) as MultiBundle>::bundle_count(res)
+    }
+    fn add(res: &mut Self::AsResources, bundle: Self) {
+        <(Self,) as MultiBundle>::add(res, (bundle,))
+    }
+    fn bundle(res: &mut Self::AsResources) -> Option<Self> {
+        <(Self,) as MultiBundle>::bundle(res).map(|(r,)| r)
+    }
+}
+impl<R1: ResourceType, const N1: u32> MultiBundleEx for Bundle<R1, N1> {
+    fn new_bundle() -> Self {
+        <(Self,) as MultiBundleEx>::new_bundle().0
+    }
+    fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
+        <(Self,) as MultiBundleEx>::iter(items)
+    }
+}
+
+macro_rules! replace_expr {
+    ($_t:tt, $($sub:tt)*) => {
+        $($sub)*
+    };
+}
+
+macro_rules! impl_multi_bundle {
+    ($($n:tt $ty:ident $amount:ident),*) => {
+        #[allow(unused)]
+        impl<
+            $(
+                $ty: ResourceType,
+                const $amount: u32,
+            )*
+        > MultiBundle for
+            (
+                $(Bundle<$ty, $amount>,)*
+            )
+        {
+            type AsResources =
+                (
+                    $(Resource<$ty>,)*
+                );
+
+            type AmountsType =
+                (
+                    $(replace_expr!($amount, u32),)*
+                );
+            const AMOUNTS: Self::AmountsType =
+                (
+                    $($amount,)*
+                );
+
+            fn bundle_count(res: &Self::AsResources) -> u32 {
+                [
+                    $(
+                        res.$n.amount() / $amount,
+                    )*
+                ].into_iter().min().unwrap_or(u32::MAX)
+            }
+            fn add(res: &mut Self::AsResources, bundle: Self) {
+                $(
+                    res.$n += bundle.$n;
+                )*
+            }
+            fn bundle(res: &mut Self::AsResources) -> Option<Self> {
+                let enough_resources = true $(
+                    && res.$n.amount() >= $amount
+                )*;
+                if enough_resources {
+                    Some((
+                        $(
+                            res.$n.bundle().ok()?,
+                        )*
+                    ))
+                } else {
+                    None
+                }
+            }
+        }
+
+        #[allow(unused)]
+        impl<
+            $($ty: ResourceType, const $amount: u32),*
+        > MultiBundleEx for ($(Bundle<$ty, $amount>,)*)
+        {
+            #[allow(clippy::unused_unit)]
+            fn new_bundle() -> Self {
+                (
+                    $(
+                        replace_expr!($ty, crate::resources::bundle()),
+                    )*
+                )
+            }
+            fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
+                [
+                    $(
+                        (
+                            <$ty as ResourceType>::NAME,
+                            Self::AMOUNTS.$n,
+                            crate::resources::resource_amount_mut(&mut items.$n),
+                        ),
+                    )*
+                ]
+                .into_iter()
+            }
+        }
+    };
+}
+
+impl_multi_bundle!();
+impl_multi_bundle!(0 R1 N1);
+impl_multi_bundle!(0 R1 N1, 1 R2 N2);
+impl_multi_bundle!(0 R1 N1, 1 R2 N2, 2 R3 N3);
 
 /// Basic recipe trait. A building's specific recipe trait can then be defined like
 /// ```rust
@@ -70,22 +221,29 @@ pub trait Recipe {
 pub trait RecipeEx: Recipe {
     /// A type guaranteed to contain exactly the input resources for one recipe cycle.
     /// Used in handcrafting.
-    type InputBundle: std::fmt::Debug;
+    type InputBundle: MultiBundleEx<AsResources = Self::Inputs>;
     /// A type guaranteed to contain exactly the output resources for one recipe cycle.
     /// Used in handcrafting.
-    type OutputBundle: std::fmt::Debug;
+    type OutputBundle: MultiBundleEx<AsResources = Self::Outputs>;
 
     /// Factory function to create a new `Self::InputBundle`.
-    fn new_output_bundle() -> Self::OutputBundle;
+    fn new_output_bundle() -> Self::OutputBundle {
+        Self::OutputBundle::new_bundle()
+    }
 
     /// Iterator helper over `Self::Inputs`.
-    fn iter_inputs(items: &mut Self::Inputs)
-    -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
+    fn iter_inputs(
+        items: &mut Self::Inputs,
+    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
+        Self::InputBundle::iter(items)
+    }
 
     /// Iterator helper over `Self::Outputs`.
     fn iter_outputs(
         items: &mut Self::Outputs,
-    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
+    ) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
+        Self::OutputBundle::iter(items)
+    }
 }
 
 /// A recipe that can be hand-crafted by the player.
