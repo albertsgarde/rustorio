@@ -36,7 +36,8 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
     let mut iron_furnace = Furnace::build(&tick, IronSmelting, iron);
 
     let mut copper_furnace = loop {
-        iron_furnace.inputs(&tick).0 += iron_territory.hand_mine::<1>(&mut tick);
+        let ore = iron_territory.hand_mine::<1>(&mut tick);
+        iron_furnace.inputs(&tick).0 += ore;
         if let Ok(iron) = iron_furnace.outputs(&tick).0.bundle() {
             break Furnace::build(&tick, CopperSmelting, iron);
         }
@@ -51,9 +52,11 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
         || copper_furnace.outputs(&tick).0.amount() < 30
     {
         if copper_furnace.inputs(&tick).0.amount() < iron_furnace.inputs(&tick).0.amount() {
-            copper_furnace.inputs(&tick).0 += copper_territory.hand_mine::<1>(&mut tick);
+            let ore = copper_territory.hand_mine::<1>(&mut tick);
+            copper_furnace.inputs(&tick).0 += ore;
         } else {
-            iron_furnace.inputs(&tick).0 += iron_territory.hand_mine::<1>(&mut tick);
+            let ore = iron_territory.hand_mine::<1>(&mut tick);
+            iron_furnace.inputs(&tick).0 += ore;
         }
     }
     for _ in 0..3 {
@@ -140,9 +143,11 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
 
     let mut lab = loop {
         if copper_furnace.inputs(&tick).0.amount() < iron_furnace.inputs(&tick).0.amount() {
-            copper_furnace.inputs(&tick).0 += copper_territory.hand_mine::<1>(&mut tick);
+            let ore = copper_territory.hand_mine::<1>(&mut tick);
+            copper_furnace.inputs(&tick).0 += ore;
         } else {
-            iron_furnace.inputs(&tick).0 += iron_territory.hand_mine::<1>(&mut tick);
+            let ore = iron_territory.hand_mine::<1>(&mut tick);
+            iron_furnace.inputs(&tick).0 += ore;
         }
         iron_furnace.inputs(&tick).0 += iron_territory.resources(&tick).empty();
         copper_furnace.inputs(&tick).0 += copper_territory.resources(&tick).empty();
