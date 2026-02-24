@@ -9,7 +9,7 @@
 
 use rustorio_engine::{
     machine::{Machine, MachineNotEmptyError},
-    recipe::{MultiBundle, Recipe, RecipeEx},
+    recipe::{MultiBundle, Recipe},
     research::{TechRecipe, Technology, tech_recipe},
     resources::creation_token,
 };
@@ -137,11 +137,11 @@ impl<R: FurnaceRecipe> Furnace<R> {
 #[derive(Debug)]
 pub struct Lab<T: Technology>(Machine<TechRecipe<T>>)
 where
-    TechRecipe<T>: RecipeEx;
+    TechRecipe<T>: Recipe;
 
 impl<T: Technology> Lab<T>
 where
-    TechRecipe<T>: RecipeEx,
+    TechRecipe<T>: Recipe,
 {
     /// Creates a new `Lab` producing research points for the specified technology.
     pub fn build(
@@ -161,7 +161,7 @@ where
         technology: &T2,
     ) -> Result<Lab<T2>, MachineNotEmptyError<Self>>
     where
-        TechRecipe<T2>: RecipeEx,
+        TechRecipe<T2>: Recipe,
     {
         let _ = technology;
         match self.0.change_recipe(tech_recipe()) {

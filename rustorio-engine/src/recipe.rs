@@ -24,13 +24,15 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
     fn add(res: &mut Self::AsResources, bundle: Self);
     /// Pop a bundle tuple from a resource tuple, if there are enough resources.
     fn bundle(res: &mut Self::AsResources) -> Option<Self>;
-}
 
-#[doc(hidden)]
-pub trait MultiBundleEx: MultiBundle {
-    /// Factory function to create a new bundle tuple.
+    /// Create a new bundle tuple out of thin air.
+    ///
+    /// For use in mods only, cannot be used from the game.
     fn new_bundle(token: &TokenOfCreation) -> Self;
+
     /// Iterate over the resources, giving direct mutable access to the amounts.
+    ///
+    /// For use in mods only, cannot be used from the game.
     fn iter<'a>(
         token: &'a TokenOfCreation,
         items: &'a mut Self::AsResources,
@@ -53,16 +55,14 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     fn bundle(res: &mut Self::AsResources) -> Option<Self> {
         <(Self,) as MultiBundle>::bundle(res).map(|(r,)| r)
     }
-}
-impl<R1: ResourceType, const N1: u32> MultiBundleEx for Bundle<R1, N1> {
     fn new_bundle(token: &TokenOfCreation) -> Self {
-        <(Self,) as MultiBundleEx>::new_bundle(token).0
+        <(Self,) as MultiBundle>::new_bundle(token).0
     }
     fn iter<'a>(
         token: &'a TokenOfCreation,
         items: &'a mut Self::AsResources,
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
-        <(Self,) as MultiBundleEx>::iter(token, items)
+        <(Self,) as MultiBundle>::iter(token, items)
     }
 }
 
@@ -125,13 +125,7 @@ macro_rules! impl_multi_bundle {
                     None
                 }
             }
-        }
 
-        #[allow(unused)]
-        impl<
-            $($ty: ResourceType, const $amount: u32),*
-        > MultiBundleEx for ($(Bundle<$ty, $amount>,)*)
-        {
             #[allow(clippy::unused_unit)]
             fn new_bundle(token: &TokenOfCreation) -> Self {
                 (
@@ -210,12 +204,8 @@ pub trait Recipe {
     type OutputResources: std::fmt::Debug + Default;
 }
 
-#[doc(hidden)]
-pub trait RecipeEx: Recipe<InputBundle: MultiBundleEx, OutputBundle: MultiBundleEx> {}
-impl<R: Recipe<InputBundle: MultiBundleEx, OutputBundle: MultiBundleEx>> RecipeEx for R {}
-
 /// A recipe that can be hand-crafted by the player.
-pub trait HandRecipe: std::fmt::Debug + Sealed + RecipeEx {
+pub trait HandRecipe: std::fmt::Debug + Sealed + Recipe {
     /// Crafts the recipe by consuming the input bundle and producing the output bundle.
     /// Advances the provided `Tick` by the recipe's time.
     fn craft(tick: &mut Tick, inputs: Self::InputBundle) -> Self::OutputBundle {

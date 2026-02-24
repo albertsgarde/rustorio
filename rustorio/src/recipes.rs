@@ -9,7 +9,7 @@ use std::fmt::Debug;
 
 use rustorio_engine::{
     Sealed,
-    recipe::{HandRecipe, Recipe, RecipeEx, recipe_doc},
+    recipe::{HandRecipe, Recipe, recipe_doc},
 };
 
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
 };
 
 /// Any recipe that implements this trait can be used in an [`Assembler`](crate::buildings::Assembler).
-pub trait AssemblerRecipe: Debug + Sealed + RecipeEx {}
+pub trait AssemblerRecipe: Debug + Sealed + Recipe {}
 
 #[derive(Debug, Clone, Copy, Recipe)]
 #[recipe_doc]
@@ -84,7 +84,7 @@ impl Sealed for PointRecipe {}
 impl AssemblerRecipe for PointRecipe {}
 
 /// Any recipe that implements this trait can be used in a [`Furnace`](crate::buildings::Furnace).
-pub trait FurnaceRecipe: Debug + Sealed + RecipeEx {}
+pub trait FurnaceRecipe: Debug + Sealed + Recipe {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts iron ore into iron.
 #[derive(Debug, Clone, Copy, Recipe)]
