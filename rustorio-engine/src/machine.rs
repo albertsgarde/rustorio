@@ -10,6 +10,7 @@
 
 use crate::{
     recipe::{MultiBundleEx, Recipe, RecipeEx},
+    resources::{EngineToken, engine_token},
     tick::Tick,
 };
 
@@ -80,7 +81,8 @@ impl<R: RecipeEx> Machine<R> {
     }
 
     /// Build a new machine.
-    pub fn new(tick: &Tick) -> Self {
+    // Needs a token because this can be used to create resources by making a custom recipe.
+    pub fn new(_tk: &EngineToken, tick: &Tick) -> Self {
         Self::new_inner(tick.cur())
     }
 
@@ -96,12 +98,18 @@ impl<R: RecipeEx> Machine<R> {
         &mut self.outputs
     }
 
-    fn iter_inputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        <R::InputBundle as MultiBundleEx>::iter(&mut self.inputs)
+    fn iter_inputs<'a>(
+        &'a mut self,
+        tk: &'a EngineToken,
+    ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
+        <R::InputBundle as MultiBundleEx>::iter(tk, &mut self.inputs)
     }
 
-    fn iter_outputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        <R::OutputBundle as MultiBundleEx>::iter(&mut self.outputs)
+    fn iter_outputs<'a>(
+        &'a mut self,
+        tk: &'a EngineToken,
+    ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
+        <R::OutputBundle as MultiBundleEx>::iter(tk, &mut self.outputs)
     }
 
     /// Changes the [`Recipe`](crate::recipe) of the machine.
@@ -110,6 +118,7 @@ impl<R: RecipeEx> Machine<R> {
         mut self,
         recipe: R2,
     ) -> Result<Machine<R2>, MachineNotEmptyError<Self>> {
+        let tk = engine_token();
         let _ = recipe;
         fn find_nonempty<'a>(
             mut iter: impl Iterator<Item = (&'static str, u32, &'a mut u32)>,
@@ -121,8 +130,8 @@ impl<R: RecipeEx> Machine<R> {
         }
 
         if let Some((resource_type, amount, location)) =
-            find_nonempty(self.iter_inputs(), BufferLocation::Input)
-                .or_else(|| find_nonempty(self.iter_outputs(), BufferLocation::Output))
+            find_nonempty(self.iter_inputs(tk), BufferLocation::Input)
+                .or_else(|| find_nonempty(self.iter_outputs(tk), BufferLocation::Output))
         {
             Err(MachineNotEmptyError {
                 machine: self,
@@ -136,27 +145,28 @@ impl<R: RecipeEx> Machine<R> {
     }
 
     fn tick(&mut self, tick: &Tick) {
+        let tk = engine_token();
         assert!(tick.cur() >= self.tick, "Tick must be non-decreasing");
 
         self.crafting_time += tick.cur() - self.tick;
         let crafting_time = self.crafting_time;
         let count = self
-            .iter_inputs()
+            .iter_inputs(tk)
             .map(|(_, needed, current)| *current / needed)
             .chain((R::TIME > 0).then(|| (crafting_time / R::TIME).try_into().unwrap()))
             .min()
             .unwrap();
 
-        for (_, needed, current) in self.iter_inputs() {
+        for (_, needed, current) in self.iter_inputs(tk) {
             *current -= count * needed;
         }
-        for (_, needed, current) in self.iter_outputs() {
+        for (_, needed, current) in self.iter_outputs(tk) {
             *current += count * needed;
         }
         self.crafting_time -= u64::from(count) * R::TIME;
 
         if self
-            .iter_inputs()
+            .iter_inputs(tk)
             .any(|(_, needed, current)| *current < needed)
         {
             self.crafting_time = 0;

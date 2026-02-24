@@ -6,6 +6,7 @@ use rustorio_engine::{
     bundle,
     gamemodes::{GameMode, StartingResources},
     mod_reexports::Tick,
+    resources::EngineToken,
 };
 
 use crate::{
@@ -29,11 +30,11 @@ pub struct TutorialStartingResources {
 }
 
 impl StartingResources for TutorialStartingResources {
-    fn init(tick: &Tick) -> Self {
+    fn init(tk: &EngineToken, tick: &Tick) -> Self {
         Self {
-            iron: bundle(),
-            iron_territory: Territory::new(tick, 5),
-            copper_territory: Territory::new(tick, 5),
+            iron: bundle(tk),
+            iron_territory: Territory::new(tk, tick, 5),
+            copper_territory: Territory::new(tk, tick, 5),
             guide: Guide,
         }
     }
@@ -61,11 +62,11 @@ pub struct StandardStartingResources {
     pub steel_technology: SteelTechnology,
 }
 impl StartingResources for StandardStartingResources {
-    fn init(tick: &Tick) -> Self {
+    fn init(tk: &EngineToken, tick: &Tick) -> Self {
         Self {
-            iron: bundle(),
-            iron_territory: Territory::new(tick, 20),
-            copper_territory: Territory::new(tick, 20),
+            iron: bundle(tk),
+            iron_territory: Territory::new(tk, tick, 20),
+            copper_territory: Territory::new(tk, tick, 20),
             steel_technology: SteelTechnology,
         }
     }

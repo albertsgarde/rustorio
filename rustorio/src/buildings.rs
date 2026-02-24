@@ -11,6 +11,7 @@ use rustorio_engine::{
     machine::{Machine, MachineNotEmptyError},
     recipe::{MultiBundle, Recipe, RecipeEx},
     research::{TechRecipe, Technology, tech_recipe},
+    resources::EngineToken,
 };
 
 use crate::{
@@ -39,8 +40,9 @@ impl<R: AssemblerRecipe> Assembler<R> {
         copper_wires: Bundle<CopperWire, 12>,
         iron: Bundle<Iron, 6>,
     ) -> Self {
+        let tk = &unsafe { EngineToken::make() };
         let _ = (recipe, copper_wires, iron);
-        Self(Machine::new(tick))
+        Self(Machine::new(tk, tick))
     }
 
     /// Changes the [`Recipe`](crate::recipes) of the assembler.
@@ -91,8 +93,9 @@ pub struct Furnace<R: FurnaceRecipe>(Machine<R>);
 impl<R: FurnaceRecipe> Furnace<R> {
     /// Builds a furnace. Costs 10 [iron](crate::resources::Iron).
     pub fn build(tick: &Tick, recipe: R, iron: Bundle<Iron, 10>) -> Self {
+        let tk = &unsafe { EngineToken::make() };
         let _ = (recipe, iron);
-        Self(Machine::new(tick))
+        Self(Machine::new(tk, tick))
     }
 
     /// Changes the [`Recipe`](crate::recipes) of the furnace.
@@ -147,8 +150,9 @@ where
         iron: Bundle<Iron, 20>,
         copper: Bundle<Copper, 15>,
     ) -> Self {
+        let tk = &unsafe { EngineToken::make() };
         let _ = (technology, iron, copper);
-        Self(Machine::new(tick))
+        Self(Machine::new(tk, tick))
     }
 
     /// Changes the technology this `Lab` is producing research points for.

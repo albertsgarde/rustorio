@@ -104,9 +104,30 @@ where
     phantom: PhantomData<R>,
 }
 
+/// A token required for any out-of-thin-air creation of resources. It is unsafe to create from
+/// outside the engine, to prevent players from using these APIs.
+pub struct EngineToken(());
+
+/// Internal function that creates a token.
+pub(crate) const fn engine_token() -> &'static EngineToken {
+    &EngineToken(())
+}
+
+impl EngineToken {
+    /// Create a token that allows out-of-thin-air creation of resources. This is unsafe to prevent
+    /// players from using it.
+    ///
+    /// # Safety
+    ///
+    /// Any use of the token must make sure to preserve resources.
+    pub const unsafe fn make() -> EngineToken {
+        EngineToken(())
+    }
+}
+
 /// Creates a new [`Resource`] with the specified amount.
 /// Should not be reexported in mods.
-pub const fn resource<R>(amount: u32) -> Resource<R>
+pub const fn resource<R>(_tk: &EngineToken, amount: u32) -> Resource<R>
 where
     R: ResourceType,
 {
@@ -115,11 +136,14 @@ where
 
 /// Returns a mutable reference to the amount of resource contained in the given [`Resource`].
 /// Should not be reexported in mods.
-pub const fn resource_amount_mut<R>(resource: &mut Resource<R>) -> &mut u32
+pub const fn resource_amount_mut<'a, R>(
+    tk: &'a EngineToken,
+    resource: &'a mut Resource<R>,
+) -> &'a mut u32
 where
     R: ResourceType,
 {
-    resource.amount_mut()
+    resource.amount_mut(tk)
 }
 
 impl<R> Resource<R>
@@ -134,7 +158,7 @@ where
         }
     }
 
-    pub(crate) const fn new(amount: u32) -> Self {
+    const fn new(amount: u32) -> Self {
         Self {
             amount,
             phantom: PhantomData,
@@ -146,7 +170,7 @@ where
         self.amount
     }
 
-    const fn amount_mut(&mut self) -> &mut u32 {
+    const fn amount_mut(&mut self, _tk: &EngineToken) -> &mut u32 {
         &mut self.amount
     }
 
@@ -186,9 +210,8 @@ where
 
     /// Empties this [`Resource`], returning all contained resources as a new [`Resource`].
     pub const fn empty(&mut self) -> Self {
-        let amount = self.amount;
-        self.amount = 0;
-        Resource::new(amount)
+        #[allow(clippy::mem_replace_with_default)] // doesn't work in `const`
+        std::mem::replace(self, Self::new_empty())
     }
 
     /// Empties this [`Resource`] except for the specified amount, returning the emptied resources as a new [`Resource`].
@@ -320,7 +343,7 @@ where
 
 /// Creates a new [`Bundle`] with the specified resource type and amount.
 /// Should not be reexported in mods.
-pub fn bundle<R, const AMOUNT: u32>() -> Bundle<R, AMOUNT>
+pub fn bundle<R, const AMOUNT: u32>(_tk: &EngineToken) -> Bundle<R, AMOUNT>
 where
     R: ResourceType,
 {

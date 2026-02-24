@@ -8,6 +8,7 @@ use rustorio_engine::{
     ResourceType, bundle,
     mod_reexports::{Bundle, Resource, Tick},
     resource,
+    resources::EngineToken,
 };
 
 use crate::resources::{Copper, Iron};
@@ -64,7 +65,7 @@ pub struct Territory<OreType: ResourceType> {
 
 impl<OreType: ResourceType> Territory<OreType> {
     /// Creates a new territory that can hold up to `max_miners` miners.
-    pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
+    pub(crate) const fn new(_tk: &EngineToken, tick: &Tick, max_miners: u32) -> Self {
         Self {
             mining_tick: tick_to_mining_tick(tick.cur()),
             max_miners,
@@ -84,10 +85,13 @@ impl<OreType: ResourceType> Territory<OreType> {
     }
 
     fn tick(&mut self, tick: &Tick) {
+        // This function creates resources out of thin air; that's a valid token use.
+        let tk = &unsafe { EngineToken::make() };
         let mining_tick = tick_to_mining_tick(tick.cur());
         assert!(self.mining_tick <= mining_tick, "Tick went backwards");
         let mining_tick_delta = mining_tick - self.mining_tick;
         self.resources += resource(
+            tk,
             u32::try_from(mining_tick_delta).expect("Mining tick delta too large") * self.miners,
         );
         self.mining_tick = mining_tick;
@@ -95,9 +99,11 @@ impl<OreType: ResourceType> Territory<OreType> {
 
     /// Mines ore by hand, advancing the tick by [`MINING_TICK_LENGTH`] for each unit mined.
     pub fn hand_mine<const AMOUNT: u32>(&mut self, tick: &mut Tick) -> Bundle<OreType, AMOUNT> {
+        // This function creates resources out of thin air; that's a valid token use.
+        let tk = &unsafe { EngineToken::make() };
         self.tick(tick);
         tick.advance_by((u64::from(AMOUNT)) * MINING_TICK_LENGTH);
-        bundle()
+        bundle(tk)
     }
 
     /// Adds a miner to the territory.
