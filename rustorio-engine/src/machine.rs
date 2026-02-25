@@ -12,7 +12,7 @@ use crate::{
     recipe::{MultiBundle, Recipe},
     resources::{EngineToken, engine_token},
     tick::Tick,
-    time_travel::{BackwardTickingError, TickSnapshot},
+    time_travel::{BackwardTickingError, PastTick, TickSnapshot},
 };
 
 /// Location of a resource buffer in a machine.
@@ -97,6 +97,34 @@ impl<R: Recipe> Machine<R> {
     pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::OutputResources {
         self.tick(tick);
         &mut self.outputs
+    }
+
+    /// Update internal state and access input buffers.
+    pub fn past_inputs<'a, 'tick>(
+        &'a mut self,
+        tick: &'a PastTick<'tick>,
+    ) -> Result<&'a mut <R::InputBundle as MultiBundle>::AsPastResources<'tick>, BackwardTickingError>
+    {
+        self.tick_to(tick.as_snapshot())?;
+        Ok(<R::InputBundle as MultiBundle>::as_past_resources(
+            tick,
+            &mut self.inputs,
+        ))
+    }
+
+    /// Update internal state and access output buffers.
+    pub fn past_outputs<'a, 'tick>(
+        &'a mut self,
+        tick: &'a PastTick<'tick>,
+    ) -> Result<
+        &'a mut <R::OutputBundle as MultiBundle>::AsPastResources<'tick>,
+        BackwardTickingError,
+    > {
+        self.tick_to(tick.as_snapshot())?;
+        Ok(<R::OutputBundle as MultiBundle>::as_past_resources(
+            tick,
+            &mut self.outputs,
+        ))
     }
 
     fn iter_inputs<'a>(

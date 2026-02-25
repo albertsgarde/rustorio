@@ -12,6 +12,7 @@ use rustorio_engine::{
     recipe::{MultiBundle, Recipe},
     research::{TechRecipe, Technology, tech_recipe},
     resources::EngineToken,
+    time_travel::{BackwardTickingError, PastTick},
 };
 
 use crate::{
@@ -76,6 +77,26 @@ impl<R: AssemblerRecipe> Assembler<R> {
     pub const fn output_amounts(&self) -> <R::OutputBundle as MultiBundle>::AmountsType {
         <R::OutputBundle as MultiBundle>::AMOUNTS
     }
+
+    /// Update internal state and access input buffers.
+    pub fn past_inputs<'a, 'tick>(
+        &'a mut self,
+        tick: &'a PastTick<'tick>,
+    ) -> Result<&'a mut <R::InputBundle as MultiBundle>::AsPastResources<'tick>, BackwardTickingError>
+    {
+        self.0.past_inputs(tick)
+    }
+
+    /// Update internal state and access input buffers.
+    pub fn past_outputs<'a, 'tick>(
+        &'a mut self,
+        tick: &'a PastTick<'tick>,
+    ) -> Result<
+        &'a mut <R::OutputBundle as MultiBundle>::AsPastResources<'tick>,
+        BackwardTickingError,
+    > {
+        self.0.past_outputs(tick)
+    }
 }
 
 /// The furnace is used to smelt ores into base resources.
@@ -128,6 +149,26 @@ impl<R: FurnaceRecipe> Furnace<R> {
     /// Amount of each output resource created per recipe cycle
     pub const fn output_amounts(&self) -> <R::OutputBundle as MultiBundle>::AmountsType {
         <R::OutputBundle as MultiBundle>::AMOUNTS
+    }
+
+    /// Update internal state and access input buffers.
+    pub fn past_inputs<'a, 'tick>(
+        &'a mut self,
+        tick: &'a PastTick<'tick>,
+    ) -> Result<&'a mut <R::InputBundle as MultiBundle>::AsPastResources<'tick>, BackwardTickingError>
+    {
+        self.0.past_inputs(tick)
+    }
+
+    /// Update internal state and access input buffers.
+    pub fn past_outputs<'a, 'tick>(
+        &'a mut self,
+        tick: &'a PastTick<'tick>,
+    ) -> Result<
+        &'a mut <R::OutputBundle as MultiBundle>::AsPastResources<'tick>,
+        BackwardTickingError,
+    > {
+        self.0.past_outputs(tick)
     }
 }
 

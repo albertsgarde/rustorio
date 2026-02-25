@@ -6,12 +6,18 @@ use crate::{
     ResourceType, Sealed,
     resources::{Bundle, EngineToken, Resource, engine_token},
     tick::Tick,
+    time_travel::{Past, PastTick},
 };
 
 /// A tuple of `Bundle<R, N>`.
 pub trait MultiBundle: Sized + std::fmt::Debug {
     /// The corresponding tuple of `Resource<R>`.
     type AsResources: Default + std::fmt::Debug;
+
+    /// The corresponding tuple of `Past<'tick, Bundle<R, N>>`.
+    type AsPastBundle<'tick>: std::fmt::Debug;
+    /// The corresponding tuple of `Past<'tick, Resource<R>>`.
+    type AsPastResources<'tick>: std::fmt::Debug;
 
     /// A tuple of `u32`, one for each resource; used for `AMOUNTS`.
     type AmountsType: std::fmt::Debug;
@@ -32,6 +38,11 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
     /// Factory function to create a new bundle tuple.
     #[doc(hidden)]
     fn new_bundle(tk: &EngineToken) -> Self;
+    #[doc(hidden)]
+    fn as_past_resources<'a, 'tick>(
+        tick: &'a PastTick<'tick>,
+        res: &'a mut Self::AsResources,
+    ) -> &'a mut Self::AsPastResources<'tick>;
 
     /// Iterate over the resources, returning for each the resource name, per-bundle expected
     /// amount, and current amount.
@@ -48,6 +59,9 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
 impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     type AsResources = (Resource<R1>,);
 
+    type AsPastBundle<'tick> = (Past<'tick, Self>,);
+    type AsPastResources<'tick> = (Past<'tick, Resource<R1>>,);
+
     type AmountsType = (u32,);
     const AMOUNTS: Self::AmountsType = (N1,);
 
@@ -59,6 +73,12 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     }
     fn new_bundle(tk: &EngineToken) -> Self {
         <(Self,) as MultiBundle>::new_bundle(tk).0
+    }
+    fn as_past_resources<'a, 'tick>(
+        tick: &'a PastTick<'tick>,
+        res: &'a mut Self::AsResources,
+    ) -> &'a mut Self::AsPastResources<'tick> {
+        <(Self,) as MultiBundle>::as_past_resources(tick, res)
     }
     fn iter(items: &Self::AsResources) -> impl Iterator<Item = (&'static str, u32, u32)> {
         <(Self,) as MultiBundle>::iter(items)
@@ -95,6 +115,15 @@ macro_rules! impl_multi_bundle {
                     $(Resource<$ty>,)*
                 );
 
+            type AsPastBundle<'tick> =
+                (
+                    $(Past<'tick, Bundle<$ty, $amount>>,)*
+                );
+            type AsPastResources<'tick> =
+                (
+                    $(Past<'tick, Resource<$ty>>,)*
+                );
+
             type AmountsType =
                 (
                     $(replace_expr!($amount, u32),)*
@@ -127,6 +156,13 @@ macro_rules! impl_multi_bundle {
                         replace_expr!($ty, crate::resources::bundle(tk)),
                     )*
                 )
+            }
+            fn as_past_resources<'a, 'tick>(
+                _tick: &'a PastTick<'tick>,
+                res: &'a mut Self::AsResources,
+            ) -> &'a mut Self::AsPastResources<'tick> {
+                // Safety: `Past` is `repr(transparent)`; the types are otherwise the same.
+                unsafe { std::mem::transmute(res) }
             }
 
             fn iter(
