@@ -62,6 +62,18 @@ pub struct Territory<'t, OreType: ResourceType> {
     resources: Resource<'t, OreType>,
 }
 
+impl<OreType: ResourceType> Territory<'static, OreType> {
+    /// Mines ore by hand, advancing the tick by [`MINING_TICK_LENGTH`] for each unit mined.
+    pub fn hand_mine<const AMOUNT: u32>(
+        &mut self,
+        tick: &mut MainTick,
+    ) -> Bundle<'static, OreType, AMOUNT> {
+        self.tick(tick);
+        tick.advance_by((u64::from(AMOUNT)) * MINING_TICK_LENGTH);
+        bundle()
+    }
+}
+
 impl<'t, OreType: ResourceType> Territory<'t, OreType> {
     /// Creates a new territory that can hold up to `max_miners` miners.
     pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
@@ -92,16 +104,6 @@ impl<'t, OreType: ResourceType> Territory<'t, OreType> {
             u32::try_from(mining_tick_delta).expect("Mining tick delta too large") * self.miners,
         );
         self.mining_tick = mining_tick;
-    }
-
-    /// Mines ore by hand, advancing the tick by [`MINING_TICK_LENGTH`] for each unit mined.
-    pub fn hand_mine<const AMOUNT: u32>(
-        &mut self,
-        tick: &mut MainTick<'t>,
-    ) -> Bundle<'t, OreType, AMOUNT> {
-        self.tick(tick);
-        tick.advance_by((u64::from(AMOUNT)) * MINING_TICK_LENGTH);
-        bundle()
     }
 
     /// Adds a miner to the territory.

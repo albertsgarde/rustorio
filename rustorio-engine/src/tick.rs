@@ -38,9 +38,9 @@ where
     _parent_marker: std::marker::PhantomData<fn(&'parent ()) -> &'parent ()>,
 }
 
-pub type MainTick<'a> = Tick<'a, 'static>;
+pub type MainTick = Tick<'static, 'static>;
 
-impl<'own> MainTick<'own> {
+impl MainTick {
     pub(crate) const fn start() -> Self {
         Self {
             tick: 0,
@@ -55,56 +55,10 @@ impl<'own> MainTick<'own> {
     pub const fn log(&mut self, log: bool) {
         self.log = log;
     }
-
-    /// Advances the game by one tick.
-    ///
-    /// By default prints the current tick number to the console.
-    /// If you want to disable this, use the [`log`](Tick::log) method.
-    pub fn advance(&mut self) {
-        self.advance_by(1);
-    }
-
-    /// Advances the game by the specified number of ticks.
-    ///
-    /// By default prints the current tick number to the console.
-    /// If you want to disable this, use the [`log`](Tick::log) method.
-    pub fn advance_by(&mut self, ticks: u64) {
-        self.tick = self.tick.checked_add(ticks).expect("Tick overflow. Well done you've found an exploit! Or you would have if `https://github.com/albertsgarde/rustorio/issues/3` hadn't beaten you to it!");
-        if self.log {
-            println!("{self}");
-        }
-    }
-
-    /// Advances the game until the specified tick number is reached.
-    /// Does nothing if the target tick is less than or equal to the current tick.
-    ///
-    /// By default prints the current tick number to the console.
-    /// If you want to disable this, use the [`log`](Tick::log) method.
-    pub fn advance_to_tick(&mut self, target_tick: u64) {
-        if target_tick > self.tick {
-            self.advance_by(target_tick - self.tick);
-        }
-    }
-
-    /// Advances the game until the specified condition is met or the maximum number of ticks has passed.
-    /// Returns `true` if the condition was met, or `false` if the maximum number of ticks was reached first.
-    ///
-    /// By default prints the current tick number to the console every tick.
-    /// If you want to disable this, use the [`log`](Tick::log) method.
-    pub fn advance_until<F>(&mut self, mut condition: F, max_ticks: u64) -> bool
-    where
-        F: FnMut(&Tick) -> bool,
-    {
-        let start_tick = self.tick;
-        while !condition(self) && self.tick - start_tick < max_ticks {
-            self.advance();
-        }
-        self.tick - start_tick < max_ticks
-    }
 }
 
 impl<'own, 'parent> Tick<'own, 'parent> {
-    pub(crate) const fn branch<'branch>(&self) -> Tick<'branch, 'own> {
+    pub(crate) const fn branch<'branch>(&self, _brand: &'branch ()) -> Tick<'branch, 'own> {
         Tick {
             tick: self.tick,
             max_tick: self.tick,
@@ -132,44 +86,40 @@ impl<'own, 'parent> Tick<'own, 'parent> {
     }
 
     /// Advances the game by one tick.
-    pub const fn try_advance(&mut self) -> Result<(), AdvanceSubTickError> {
-        self.try_advance_by(1)
+    pub const fn advance(&mut self) -> bool {
+        self.advance_by(1)
     }
 
     /// Advances the game by the specified number of ticks.
-    pub const fn try_advance_by(&mut self, ticks: u64) -> Result<(), AdvanceSubTickError> {
+    pub const fn advance_by(&mut self, ticks: u64) -> bool {
         if self.tick + ticks > self.max_tick {
-            return Err(AdvanceSubTickError::SubTickAheadOfMainTick);
+            self.tick = self.max_tick;
+            return false;
         }
         self.tick = self.tick.checked_add(ticks).expect("Tick overflow. Well done you've found an exploit! Or you would have if `https://github.com/albertsgarde/rustorio/issues/3` hadn't beaten you to it!");
-        Ok(())
+        true
     }
 
     /// Advances the game until the specified tick number is reached.
     /// Does nothing if the target tick is less than or equal to the current tick.
-    pub const fn try_advance_to_tick(
-        &mut self,
-        target_tick: u64,
-    ) -> Result<(), AdvanceSubTickError> {
+    pub const fn advance_to_tick(&mut self, target_tick: u64) -> bool {
         if target_tick > self.tick {
-            self.try_advance_by(target_tick - self.tick)
+            self.advance_by(target_tick - self.tick)
         } else {
-            Ok(())
+            true
         }
     }
 
     /// Advances the game until the specified condition is met or the maximum number of ticks has passed.
     /// Returns `true` if the condition was met, or `false` if the maximum number of ticks or the main tick was reached first.
-    pub fn try_advance_until<F>(&mut self, mut condition: F, max_ticks: u64) -> bool
+    pub fn advance_until<F>(&mut self, mut condition: F) -> bool
     where
-        F: FnMut(&Tick) -> bool,
+        F: FnMut(&Tick<'own, 'parent>) -> bool,
     {
-        let start_tick = self.tick;
         while !condition(self) {
-            if self.tick - start_tick >= max_ticks || self.tick >= self.max_tick {
+            if !self.advance() {
                 return false;
             }
-            self.try_advance().expect("Due to the checks in the while loop, this should never fail. If it does, please report this as a bug.");
         }
         true
     }

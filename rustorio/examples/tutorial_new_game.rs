@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![forbid(internal_features)]
 
-use rustorio::{self, Bundle, Tick, gamemodes::Tutorial, resources::Copper};
+use rustorio::{self, Bundle, MainTick, gamemodes::Tutorial, resources::Copper};
 
 type GameMode = Tutorial;
 
@@ -13,7 +13,10 @@ fn main() {
 
 #[allow(unused_variables)]
 #[allow(unused_mut)]
-fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bundle<Copper, 4>) {
+fn user_main(
+    mut tick: MainTick,
+    starting_resources: StartingResources,
+) -> (MainTick, Bundle<'static, Copper, 4>) {
     tick.log(true);
 
     let StartingResources {

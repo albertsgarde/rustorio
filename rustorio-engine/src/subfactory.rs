@@ -16,12 +16,18 @@ where
     /// The Tick functions very similarly to the main tick, but advancing it will fail if it is advanced beyond the main tick.
     /// The Tick need not be advanced all the way to the main tick in this function,
     /// as this will happen automatically when this function returns.
-    fn tick(&mut self, tick: &Tick<'own, 'parent>) -> Result<(), Self::TickError>;
+    fn tick(&mut self, tick: &mut Tick<'own, 'parent>) -> Result<(), Self::TickError>;
+
+    fn move_to_branch<'branch, O>(self, branch_tick: &Tick<'branch, 'own>) -> O
+    where
+        O: SubfactoryContents<'branch, 'own, TickError = Self::TickError>,
+        'branch: 'own,
+        Self: Sized;
 }
 
-struct SubfactoryContentsInner<'own, 'parent, T, TickFn, TickError>
+pub struct SubfactoryContentsInner<'own, 'parent, T, TickFn, TickError>
 where
-    TickFn: Fn(&mut T, &Tick<'own, 'parent>) -> Result<(), TickError>,
+    TickFn: Fn(&mut T, &mut Tick<'own, 'parent>) -> Result<(), TickError>,
     'parent: 'own,
 {
     tick_fn: TickFn,
@@ -32,13 +38,22 @@ where
 impl<'own, 'parent, T, TickFn, TickError> SubfactoryContents<'own, 'parent>
     for SubfactoryContentsInner<'own, 'parent, T, TickFn, TickError>
 where
-    TickFn: Fn(&mut T, &Tick<'own, 'parent>) -> Result<(), TickError>,
+    TickFn: Fn(&mut T, &mut Tick<'own, 'parent>) -> Result<(), TickError>,
     'parent: 'own,
 {
     type TickError = TickError;
 
-    fn tick(&mut self, tick: &Tick<'own, 'parent>) -> Result<(), Self::TickError> {
+    fn tick(&mut self, tick: &mut Tick<'own, 'parent>) -> Result<(), Self::TickError> {
         (self.tick_fn)(&mut self.contents, tick)
+    }
+
+    fn move_to_branch<'branch, O>(self, branch_tick: &Tick<'branch, 'own>) -> O
+    where
+        O: SubfactoryContents<'branch, 'own, TickError = Self::TickError>,
+        'branch: 'own,
+        Self: Sized,
+    {
+        todo!()
     }
 }
 
@@ -55,23 +70,39 @@ where
 }
 
 impl<'own, 'parent> Tick<'own, 'parent> {
-    /// Creates a new subfactory with the given contents and tick function.
-    pub const fn subfactory<'branch, T, TickFn, TickError>(
+    pub const fn subfactory<'branch, T>(
         &self,
+        _brand: &'branch (),
+        contents: T,
+    ) -> Subfactory<'branch, 'own, T>
+    where
+        'branch: 'own,
+        T: SubfactoryContents<'own, 'parent>,
+    {
+        Subfactory {
+            tick: self.branch(_brand),
+            contents,
+        }
+    }
+
+    pub const fn subfactory_from_parts<'branch, T, TickFn, TickError>(
+        &self,
+        _brand: &'branch (),
         contents: T,
         tick_fn: TickFn,
     ) -> Subfactory<'branch, 'own, SubfactoryContentsInner<'branch, 'own, T, TickFn, TickError>>
     where
-        TickFn: Fn(&mut T, &Tick<'branch, 'own>) -> Result<(), TickError>,
+        'branch: 'own,
+        TickFn: Fn(&mut T, &mut Tick<'branch, 'own>) -> Result<(), TickError>,
     {
-        Subfactory {
-            tick: self.branch(),
-            contents: SubfactoryContentsInner {
+        self.subfactory(
+            _brand,
+            SubfactoryContentsInner {
                 tick_fn,
                 contents,
                 _marker: std::marker::PhantomData,
             },
-        }
+        )
     }
 }
 
@@ -84,7 +115,7 @@ where
     /// the Tick will be advanced to the main tick at the end of this function.
     fn try_tick(&mut self, tick: &Tick<'parent, '_>) -> Result<(), T::TickError> {
         self.tick.update(tick);
-        self.contents.tick(&self.tick)?;
+        self.contents.tick(&mut self.tick)?;
         assert!(
             self.tick.cur() <= tick.cur(),
             "Subfactory tick is ahead of main tick"

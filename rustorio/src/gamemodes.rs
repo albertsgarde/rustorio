@@ -21,9 +21,9 @@ pub struct TutorialStartingResources {
     /// Initial iron bundle.
     pub iron: Bundle<'static, Iron, 10>,
     /// Initial territory to mine iron ore from.
-    pub iron_territory: Territory<IronOre>,
+    pub iron_territory: Territory<'static, IronOre>,
     /// Initial territory to mine copper ore from.
-    pub copper_territory: Territory<CopperOre>,
+    pub copper_territory: Territory<'static, CopperOre>,
     /// The in-game guide that provides hints to the player.
     pub guide: Guide,
 }
@@ -54,9 +54,9 @@ pub struct StandardStartingResources {
     /// Initial iron bundle.
     pub iron: Bundle<'static, Iron, 10>,
     /// Initial territory rich in iron ore.
-    pub iron_territory: Territory<IronOre>,
+    pub iron_territory: Territory<'static, IronOre>,
     /// Initial territory rich in copper ore.
-    pub copper_territory: Territory<CopperOre>,
+    pub copper_territory: Territory<'static, CopperOre>,
     /// The first technology the player can research.
     pub steel_technology: SteelTechnology,
 }

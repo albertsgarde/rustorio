@@ -108,7 +108,14 @@ impl<'t, R: FurnaceRecipe<'t>> Furnace<'t, R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe<'t>>::Inputs {
+    pub fn inputs<'a, 'b, 'c>(
+        &'a mut self,
+        tick: &'b Tick<'t, '_>,
+    ) -> &'c mut <R as Recipe<'t>>::Inputs
+    where
+        'b: 'c,
+        'a: 'c,
+    {
         self.0.inputs(tick)
     }
 
@@ -118,7 +125,14 @@ impl<'t, R: FurnaceRecipe<'t>> Furnace<'t, R> {
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe<'t>>::Outputs {
+    pub fn outputs<'a, 'b, 'c>(
+        &'a mut self,
+        tick: &'b Tick<'t, '_>,
+    ) -> &'c mut <R as Recipe<'t>>::Outputs
+    where
+        'b: 'c,
+        'a: 'c,
+    {
         self.0.outputs(tick)
     }
 
@@ -132,11 +146,11 @@ impl<'t, R: FurnaceRecipe<'t>> Furnace<'t, R> {
 /// Set it to produce research points for a specific technology either when [`build`](Lab::build)ing it,
 /// or using [`change_technology`](Lab::change_technology).
 #[derive(Debug)]
-pub struct Lab<'t, T: Technology>(Machine<'t, TechRecipe<'t, T>>)
+pub struct Lab<'t, T: Technology<'t>>(Machine<'t, TechRecipe<'t, T>>)
 where
     TechRecipe<'t, T>: RecipeEx<'t>;
 
-impl<'t, T: Technology> Lab<'t, T>
+impl<'t, T: Technology<'t>> Lab<'t, T>
 where
     TechRecipe<'t, T>: RecipeEx<'t>,
 {
@@ -152,7 +166,7 @@ where
     }
 
     /// Changes the technology this `Lab` is producing research points for.
-    pub fn change_technology<T2: Technology>(
+    pub fn change_technology<T2: Technology<'t>>(
         self,
         technology: &T2,
     ) -> Result<Lab<'t, T2>, MachineNotEmptyError<Self>>

@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use rustorio::{
-    self, Bundle, HandRecipe, ResearchPoint, Resource, Technology, Tick,
+    self, Bundle, HandRecipe, MainTick, ResearchPoint, Resource, Technology,
     buildings::{Assembler, Furnace, Lab},
     gamemodes::Standard,
     recipes::{
@@ -21,11 +21,14 @@ fn standard_simple() {
     rustorio::play::<GameMode>(user_main);
 }
 
-fn craft<R: HandRecipe>(inputs: R::InputBundle, tick: &mut Tick) -> R::OutputBundle {
+fn craft<'t, R: HandRecipe<'t>>(inputs: R::InputBundle, tick: &mut MainTick) -> R::OutputBundle {
     R::craft(tick, inputs)
 }
 
-fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bundle<Point, 200>) {
+fn user_main(
+    mut tick: MainTick,
+    starting_resources: StartingResources,
+) -> (MainTick, Bundle<'static, Point, 200>) {
     let StartingResources {
         iron,
         mut iron_territory,

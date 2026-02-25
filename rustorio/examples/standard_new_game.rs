@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![forbid(internal_features)]
 
-use rustorio::{self, Bundle, Tick, gamemodes::Standard, resources::Point};
+use rustorio::{self, Bundle, MainTick, gamemodes::Standard, resources::Point};
 
 type GameMode = Standard;
 
@@ -13,7 +13,10 @@ fn main() {
 
 #[allow(unused_variables)]
 #[allow(unused_mut)]
-fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bundle<Point, 200>) {
+fn user_main(
+    mut tick: MainTick,
+    starting_resources: StartingResources,
+) -> (MainTick, Bundle<'static, Point, 200>) {
     let StartingResources {
         iron,
         mut iron_territory,
