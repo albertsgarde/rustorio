@@ -77,7 +77,7 @@ pub mod mod_reexports {
         gamemodes::GameMode,
         play,
         recipe::{HandRecipe, Recipe},
-        research::{ResearchPoint, Technology},
+        research::{ResearchPoint, TechRecipe, Technology},
         resources::{Bundle, InsufficientResourceError, Resource, ResourceType},
         tick::Tick,
     };
