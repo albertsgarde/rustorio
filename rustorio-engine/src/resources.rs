@@ -163,7 +163,7 @@ where
         self.amount
     }
 
-    const fn amount_mut(&mut self, _token: &TokenOfCreation) -> &mut u32 {
+    pub(crate) const fn amount_mut(&mut self, _token: &TokenOfCreation) -> &mut u32 {
         &mut self.amount
     }
 

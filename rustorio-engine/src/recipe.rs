@@ -19,7 +19,12 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
     const AMOUNTS: Self::AmountsType;
 
     /// Count the number of bundle tuples available in the given resource tuple.
-    fn bundle_count(res: &Self::AsResources) -> u32;
+    fn bundle_count(res: &Self::AsResources) -> u32 {
+        Self::iter(res)
+            .map(|(_, expected, current)| current / expected)
+            .min()
+            .unwrap_or(u32::MAX)
+    }
     /// Add the bundle tuple to the resource tuple.
     fn add(res: &mut Self::AsResources, bundle: Self);
     /// Pop a bundle tuple from a resource tuple, if there are enough resources.
@@ -30,10 +35,14 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
     /// For use in mods only, cannot be used from the game.
     fn new_bundle(token: &TokenOfCreation) -> Self;
 
+    /// Iterate over the resources, returning for each the resource name, per-bundle expected
+    /// amount, and current amount.
+    fn iter(items: &Self::AsResources) -> impl Iterator<Item = (&'static str, u32, u32)>;
+
     /// Iterate over the resources, giving direct mutable access to the amounts.
     ///
     /// For use in mods only, cannot be used from the game.
-    fn iter<'a>(
+    fn iter_mut<'a>(
         token: &'a TokenOfCreation,
         items: &'a mut Self::AsResources,
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)>;
@@ -46,9 +55,6 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     type AmountsType = (u32,);
     const AMOUNTS: Self::AmountsType = (N1,);
 
-    fn bundle_count(res: &Self::AsResources) -> u32 {
-        <(Self,) as MultiBundle>::bundle_count(res)
-    }
     fn add(res: &mut Self::AsResources, bundle: Self) {
         <(Self,) as MultiBundle>::add(res, (bundle,))
     }
@@ -58,11 +64,14 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     fn new_bundle(token: &TokenOfCreation) -> Self {
         <(Self,) as MultiBundle>::new_bundle(token).0
     }
-    fn iter<'a>(
+    fn iter(items: &Self::AsResources) -> impl Iterator<Item = (&'static str, u32, u32)> {
+        <(Self,) as MultiBundle>::iter(items)
+    }
+    fn iter_mut<'a>(
         token: &'a TokenOfCreation,
         items: &'a mut Self::AsResources,
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
-        <(Self,) as MultiBundle>::iter(token, items)
+        <(Self,) as MultiBundle>::iter_mut(token, items)
     }
 }
 
@@ -99,23 +108,13 @@ macro_rules! impl_multi_bundle {
                     $($amount,)*
                 );
 
-            fn bundle_count(res: &Self::AsResources) -> u32 {
-                [
-                    $(
-                        res.$n.amount() / $amount,
-                    )*
-                ].into_iter().min().unwrap_or(u32::MAX)
-            }
             fn add(res: &mut Self::AsResources, bundle: Self) {
                 $(
                     res.$n += bundle.$n;
                 )*
             }
             fn bundle(res: &mut Self::AsResources) -> Option<Self> {
-                let enough_resources = true $(
-                    && res.$n.amount() >= $amount
-                )*;
-                if enough_resources {
+                if Self::bundle_count(res) >= 1 {
                     Some((
                         $(
                             res.$n.bundle().ok()?,
@@ -125,7 +124,6 @@ macro_rules! impl_multi_bundle {
                     None
                 }
             }
-
             #[allow(clippy::unused_unit)]
             fn new_bundle(token: &TokenOfCreation) -> Self {
                 (
@@ -134,7 +132,21 @@ macro_rules! impl_multi_bundle {
                     )*
                 )
             }
-            fn iter<'a>(
+            fn iter(
+                items: &Self::AsResources,
+            ) -> impl Iterator<Item = (&'static str, u32, u32)> {
+                [
+                    $(
+                        (
+                            <$ty as ResourceType>::NAME,
+                            Self::AMOUNTS.$n,
+                            items.$n.amount(),
+                        ),
+                    )*
+                ]
+                .into_iter()
+            }
+            fn iter_mut<'a>(
                 token: &'a TokenOfCreation,
                 items: &'a mut Self::AsResources,
             ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
@@ -143,7 +155,7 @@ macro_rules! impl_multi_bundle {
                         (
                             <$ty as ResourceType>::NAME,
                             Self::AMOUNTS.$n,
-                            crate::resources::resource_amount_mut(token, &mut items.$n),
+                            items.$n.amount_mut(token),
                         ),
                     )*
                 ]

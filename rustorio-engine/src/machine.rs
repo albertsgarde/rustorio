@@ -102,14 +102,14 @@ impl<R: Recipe> Machine<R> {
         &'a mut self,
         token: &'a TokenOfCreation,
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
-        <R::InputBundle as MultiBundle>::iter(token, &mut self.inputs)
+        <R::InputBundle as MultiBundle>::iter_mut(token, &mut self.inputs)
     }
 
     fn iter_outputs<'a>(
         &'a mut self,
         token: &'a TokenOfCreation,
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
-        <R::OutputBundle as MultiBundle>::iter(token, &mut self.outputs)
+        <R::OutputBundle as MultiBundle>::iter_mut(token, &mut self.outputs)
     }
 
     /// Changes the [`Recipe`](crate::recipe) of the machine.
