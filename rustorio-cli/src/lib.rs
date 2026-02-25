@@ -98,14 +98,20 @@ enum Commands {
     /// For example, in most Rustorio folders, there'll be a `tutorial` save game.
     /// To run it, use `rustorio play tutorial`.
     Play(PlayArgs),
+    /// Submits a save to the Rustorio leaderboard at rustor.io.
+    /// Can only be run in a Rustorio project.
     Submit(SubmitArgs),
+    /// Opens the Rustorio documentation in the default web browser.
+    /// Can only be run in a Rustorio project.
     Doc(DocArgs),
 }
 
 #[derive(Args)]
 pub struct SetupArgs {
+    /// Where to set up the Rustorio project. Will be set up in a new `rustorio` directory inside this path. Defaults to the current directory.
     #[clap(default_value = ".")]
     path: PathBuf,
+    /// Whether to create a tutorial save game with the new Rustorio project. Defaults to true.
     #[clap(long, default_value_t = true)]
     include_tutorial: bool,
 }
@@ -204,8 +210,12 @@ impl GameMode {
 
 #[derive(Args)]
 pub struct NewGameArgs {
+    /// Name of the new save game. If not specified, will be generated based on the game mode.
+    ///
+    /// The name is used as the name of the folder in `src/bin` where the save game is stored, and is how you will refer to it in other commands like `rustorio play` or `submit`.
     #[clap()]
     name: Option<String>,
+    /// The game mode for the new save game.
     #[clap(long, short, value_enum, default_value_t = GameMode::Standard)]
     game_mode: GameMode,
 }

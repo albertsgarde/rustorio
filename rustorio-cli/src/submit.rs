@@ -7,6 +7,9 @@ use crate::project::ProjectInfo;
 
 #[derive(Args)]
 pub struct SubmitArgs {
+    /// Name of the save game to submit.
+    /// This should be the name of a folder in `src/bin` that contains a Rustorio save game.
+    /// For example, if you have a save game in `src/bin/tutorial`, you can submit it with `rustorio submit tutorial`.
     #[clap()]
     save_name: String,
 }
