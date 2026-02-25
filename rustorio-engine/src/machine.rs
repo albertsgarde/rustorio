@@ -12,6 +12,7 @@ use crate::{
     recipe::{MultiBundle, Recipe},
     resources::{EngineToken, engine_token},
     tick::Tick,
+    time_travel::{BackwardTickingError, TickSnapshot},
 };
 
 /// Location of a resource buffer in a machine.
@@ -66,12 +67,12 @@ impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
 pub struct Machine<R: Recipe> {
     inputs: R::InputResources,
     outputs: R::OutputResources,
-    tick: u64,
+    tick: TickSnapshot,
     crafting_time: u64,
 }
 
 impl<R: Recipe> Machine<R> {
-    fn new_inner(tick: u64) -> Self {
+    fn new_inner(tick: TickSnapshot) -> Self {
         Self {
             inputs: Default::default(),
             outputs: Default::default(),
@@ -83,7 +84,7 @@ impl<R: Recipe> Machine<R> {
     /// Build a new machine.
     // Needs a token because this can be used to create resources by making a custom recipe.
     pub fn new(_tk: &EngineToken, tick: &Tick) -> Self {
-        Self::new_inner(tick.cur())
+        Self::new_inner(tick.snapshot())
     }
 
     /// Update internal state and access input buffers.
@@ -144,11 +145,11 @@ impl<R: Recipe> Machine<R> {
         }
     }
 
-    fn tick(&mut self, tick: &Tick) {
+    fn tick_to(&mut self, until: TickSnapshot) -> Result<(), BackwardTickingError> {
         let tk = engine_token();
-        assert!(tick.cur() >= self.tick, "Tick must be non-decreasing");
+        let time_elapsed = self.tick.advance_to(until)?;
 
-        self.crafting_time += tick.cur() - self.tick;
+        self.crafting_time += time_elapsed;
         let crafting_time = self.crafting_time;
         let count = self
             .iter_inputs(tk)
@@ -172,6 +173,11 @@ impl<R: Recipe> Machine<R> {
             self.crafting_time = 0;
         }
 
-        self.tick = tick.cur();
+        Ok(())
+    }
+
+    fn tick(&mut self, tick: &Tick) {
+        let res = self.tick_to(tick.snapshot());
+        assert!(res.is_ok(), "Tick must be non-decreasing");
     }
 }

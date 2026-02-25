@@ -14,6 +14,7 @@ pub mod recipe;
 pub mod research;
 pub mod resources;
 mod tick;
+pub mod time_travel;
 
 use std::{io::Write, net::TcpStream, sync::Once};
 
