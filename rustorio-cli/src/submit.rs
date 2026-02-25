@@ -3,7 +3,7 @@ use clap::Args;
 use reqwest::blocking::Client;
 use rustorio_common::SubmitRunRequest;
 
-use crate::ProjectInfo;
+use crate::project::ProjectInfo;
 
 #[derive(Args)]
 pub struct SubmitArgs {
@@ -18,7 +18,7 @@ impl SubmitArgs {
 
         let SubmitArgs { save_name } = self;
 
-        let play_output = crate::play(&project_info, save_name).with_context(|| {
+        let play_output = project_info.play(save_name).with_context(|| {
             format!("Failed to get play output for save with name '{save_name}'")
         })?;
 
