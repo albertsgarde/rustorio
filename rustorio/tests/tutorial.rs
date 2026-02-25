@@ -28,5 +28,6 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Vi
     tick.advance_until(|tick| furnace.outputs(tick).0.amount() >= 4, 100);
 
     let win_bundle = furnace.outputs(&tick).0.bundle().unwrap();
+    assert_eq!(tick.cur(), 40);
     (tick, win_bundle)
 }

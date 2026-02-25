@@ -277,5 +277,6 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
 
     println!("Produced 200 points at tick {}", tick.cur());
 
+    assert_eq!(tick.cur(), 12449);
     (tick, points.bundle().unwrap())
 }
