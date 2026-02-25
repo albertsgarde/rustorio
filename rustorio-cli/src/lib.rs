@@ -81,6 +81,7 @@ impl Cli {
             Commands::NewGame(args) => args.run(),
             Commands::Play(args) => args.run(),
             Commands::Submit(args) => args.run(),
+            Commands::Doc(args) => args.run(),
         }
     }
 }
@@ -98,6 +99,7 @@ enum Commands {
     /// To run it, use `rustorio play tutorial`.
     Play(PlayArgs),
     Submit(SubmitArgs),
+    Doc(DocArgs),
 }
 
 #[derive(Args)]
@@ -282,7 +284,27 @@ impl PlayArgs {
     }
 }
 
-pub fn main() {
+#[derive(Args)]
+pub struct DocArgs;
+
+impl DocArgs {
+    pub fn run(&self) -> Result<()> {
+        let project_info = ProjectInfo::get().context("Failed to get project project info")?
+                .context("Can only run command in a Rustorio project. Please either navigate to a Rustorio project or run 'rustorio setup' first.")?;
+        Command::new("cargo")
+            .arg("doc")
+            .arg("--package")
+            .arg("rustorio")
+            .arg("--no-deps")
+            .arg("--open")
+            .current_dir(&project_info.root_path)
+            .run()
+            .context("Failed to open documentation in browser")?;
+        Ok(())
+    }
+}
+
+pub fn main() -> impl Termination {
     let cli = Cli::parse();
-    cli.run().report();
+    cli.run().report()
 }
