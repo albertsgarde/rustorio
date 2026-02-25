@@ -19,7 +19,8 @@ doc *FLAGS:
 create-remote-branch BRANCH:
     jj git fetch
     jj bookmark create {{BRANCH}} -r @-
-    jj git push -b {{BRANCH}} --allow-new --remote origin
+    jj bookmark track {{BRANCH}} --remote origin
+    jj git push -b {{BRANCH}} --remote origin
 
 push BRANCH:
     jj git fetch
