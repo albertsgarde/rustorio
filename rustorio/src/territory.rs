@@ -6,7 +6,7 @@ use std::fmt::Display;
 
 use rustorio_engine::{
     ResourceType, bundle,
-    mod_reexports::{Bundle, Resource, Tick},
+    mod_reexports::{Bundle, MainTick, Resource, Tick},
     resource,
 };
 
@@ -54,15 +54,15 @@ impl Display for TerritoryFullError {
 /// A territory that can hold miners to mine a specific type of ore.
 #[derive(Debug)]
 #[non_exhaustive]
-pub struct Territory<OreType: ResourceType> {
+pub struct Territory<'t, OreType: ResourceType> {
     mining_tick: u64,
     /// The maximum number of miners allowed in the territory.
     max_miners: u32,
     miners: u32,
-    resources: Resource<OreType>,
+    resources: Resource<'t, OreType>,
 }
 
-impl<OreType: ResourceType> Territory<OreType> {
+impl<'t, OreType: ResourceType> Territory<'t, OreType> {
     /// Creates a new territory that can hold up to `max_miners` miners.
     pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
         Self {
@@ -83,18 +83,22 @@ impl<OreType: ResourceType> Territory<OreType> {
         self.miners
     }
 
-    fn tick(&mut self, tick: &Tick) {
+    fn tick(&mut self, tick: &Tick<'t, '_>) {
         let mining_tick = tick_to_mining_tick(tick.cur());
         assert!(self.mining_tick <= mining_tick, "Tick went backwards");
         let mining_tick_delta = mining_tick - self.mining_tick;
         self.resources += resource(
+            tick,
             u32::try_from(mining_tick_delta).expect("Mining tick delta too large") * self.miners,
         );
         self.mining_tick = mining_tick;
     }
 
     /// Mines ore by hand, advancing the tick by [`MINING_TICK_LENGTH`] for each unit mined.
-    pub fn hand_mine<const AMOUNT: u32>(&mut self, tick: &mut Tick) -> Bundle<OreType, AMOUNT> {
+    pub fn hand_mine<const AMOUNT: u32>(
+        &mut self,
+        tick: &mut MainTick<'t>,
+    ) -> Bundle<'t, OreType, AMOUNT> {
         self.tick(tick);
         tick.advance_by((u64::from(AMOUNT)) * MINING_TICK_LENGTH);
         bundle()
@@ -102,7 +106,11 @@ impl<OreType: ResourceType> Territory<OreType> {
 
     /// Adds a miner to the territory.
     /// Returns an error including the given miner if the territory is already full.
-    pub fn add_miner(&mut self, tick: &Tick, miner: Miner) -> Result<(), TerritoryFullError> {
+    pub fn add_miner(
+        &mut self,
+        tick: &Tick<'t, '_>,
+        miner: Miner,
+    ) -> Result<(), TerritoryFullError> {
         self.tick(tick);
         if self.miners < self.max_miners {
             self.miners += 1;
@@ -117,7 +125,7 @@ impl<OreType: ResourceType> Territory<OreType> {
 
     /// Takes a miner from the territory.
     /// Returns `None` if there are no miners in the territory.
-    pub fn take_miner(&mut self, tick: &Tick) -> Option<Miner> {
+    pub fn take_miner(&mut self, tick: &Tick<'t, '_>) -> Option<Miner> {
         self.tick(tick);
         if self.miners > 0 {
             self.miners -= 1;
@@ -128,7 +136,7 @@ impl<OreType: ResourceType> Territory<OreType> {
     }
 
     /// Access the resources mined in this territory.
-    pub fn resources(&mut self, tick: &Tick) -> &mut Resource<OreType> {
+    pub fn resources(&mut self, tick: &Tick<'t, '_>) -> &mut Resource<'t, OreType> {
         self.tick(tick);
         &mut self.resources
     }

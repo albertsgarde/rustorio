@@ -27,7 +27,7 @@ For more information, see https://docs.rs/rustorio/latest/rustorio/struct.Tick.h
     }
 }
 
-impl<R: ResourceType> GuideTopic for Territory<R> {
+impl<'t, R: ResourceType> GuideTopic for Territory<'t, R> {
     fn hint() -> &'static str {
         "Territories are where you get your basic resources. \
         To begin with, you can mine by hand using the `hand_mine` function, but you can add `Miner`s to the territory to automate mining."
@@ -51,7 +51,7 @@ Try building a Furnace using `Furnace::build`. \
     }
 }
 
-impl<R: FurnaceRecipe> GuideTopic for Furnace<'_, R> {
+impl<'t, R: FurnaceRecipe<'t>> GuideTopic for Furnace<'t, R> {
     fn hint() -> &'static str {
         "Congratulations on building your first Furnace! If you haven't already, mine some copper ore using `Territory::hand_mine`. \
         You can access the input buffers of the furnace using `Furnace::inputs`, which allows you to add ore. \

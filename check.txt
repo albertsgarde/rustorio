@@ -1,0 +1,354 @@
+warning: unused import: `tick::Tick`
+  --> rustorio-engine/src/research.rs:14:5
+   |
+14 |     tick::Tick,
+   |     ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: type `SubfactoryContentsInner<'branch, 'own, T, TickFn, TickError>` is more private than the item `subfactory::<impl Tick<'own, 'parent>>::subfactory`
+  --> rustorio-engine/src/subfactory.rs:59:5
+   |
+59 | /     pub const fn subfactory<'branch, T, TickFn, TickError>(
+60 | |         &self,
+61 | |         contents: T,
+62 | |         tick_fn: TickFn,
+63 | |     ) -> Subfactory<'branch, 'own, SubfactoryContentsInner<'branch, 'own, T, TickFn, TickError>>
+64 | |     where
+65 | |         TickFn: Fn(&mut T, &Tick<'branch, 'own>) -> Result<(), TickError>,
+   | |__________________________________________________________________________^ method `subfactory::<impl Tick<'own, 'parent>>::subfactory` is reachable at visibility `pub`
+   |
+note: but type `SubfactoryContentsInner<'branch, 'own, T, TickFn, TickError>` is only usable at visibility `pub(self)`
+  --> rustorio-engine/src/subfactory.rs:22:1
+   |
+22 | struct SubfactoryContentsInner<'own, 'parent, T, TickFn, TickError>
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: missing documentation for a method
+   --> rustorio-engine/src/tick.rs:122:5
+    |
+122 |     pub const fn parent_cur(&self) -> u64 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> rustorio-engine/src/lib.rs:3:9
+    |
+  3 | #![warn(missing_docs)]
+    |         ^^^^^^^^^^^^
+
+warning: `rustorio-engine` (lib) generated 3 warnings (run `cargo fix --lib -p rustorio-engine` to apply 1 suggestion)
+    Checking rustorio v0.1.2 (/home/user/repos/rustorio/rustorio)
+error[E0106]: missing lifetime specifier
+  --> rustorio/src/buildings.rs:32:29
+   |
+32 | pub struct Assembler<'t, R: AssemblerRecipe>(Machine<'t, R>);
+   |                             ^^^^^^^^^^^^^^^ expected named lifetime parameter
+   |
+help: consider using the `'t` lifetime
+   |
+32 | pub struct Assembler<'t, R: AssemblerRecipe<'t>>(Machine<'t, R>);
+   |                                            ++++
+
+error[E0106]: missing lifetime specifier
+  --> rustorio/src/buildings.rs:34:13
+   |
+34 | impl<'t, R: AssemblerRecipe> Assembler<'t, R> {
+   |             ^^^^^^^^^^^^^^^ expected named lifetime parameter
+   |
+help: consider using the `'t` lifetime
+   |
+34 | impl<'t, R: AssemblerRecipe<'t>> Assembler<'t, R> {
+   |                            ++++
+
+error[E0106]: missing lifetime specifier
+  --> rustorio/src/buildings.rs:48:30
+   |
+48 |     pub fn change_recipe<R2: AssemblerRecipe>(
+   |                              ^^^^^^^^^^^^^^^ expected named lifetime parameter
+   |
+help: consider using the `'t` lifetime
+   |
+48 |     pub fn change_recipe<R2: AssemblerRecipe<'t>>(
+   |                                             ++++
+
+error[E0106]: missing lifetime specifier
+  --> rustorio/src/buildings.rs:89:27
+   |
+89 | pub struct Furnace<'t, R: FurnaceRecipe>(Machine<'t, R>);
+   |                           ^^^^^^^^^^^^^ expected named lifetime parameter
+   |
+help: consider using the `'t` lifetime
+   |
+89 | pub struct Furnace<'t, R: FurnaceRecipe<'t>>(Machine<'t, R>);
+   |                                        ++++
+
+error[E0106]: missing lifetime specifier
+  --> rustorio/src/buildings.rs:91:13
+   |
+91 | impl<'t, R: FurnaceRecipe> Furnace<'t, R> {
+   |             ^^^^^^^^^^^^^ expected named lifetime parameter
+   |
+help: consider using the `'t` lifetime
+   |
+91 | impl<'t, R: FurnaceRecipe<'t>> Furnace<'t, R> {
+   |                          ++++
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/buildings.rs:100:30
+    |
+100 |     pub fn change_recipe<R2: FurnaceRecipe>(
+    |                              ^^^^^^^^^^^^^ expected named lifetime parameter
+    |
+help: consider using the `'t` lifetime
+    |
+100 |     pub fn change_recipe<R2: FurnaceRecipe<'t>>(
+    |                                           ++++
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/buildings.rs:137:24
+    |
+137 |     TechRecipe<'t, T>: RecipeEx;
+    |                        ^^^^^^^^ expected named lifetime parameter
+    |
+help: consider using the `'t` lifetime
+    |
+137 |     TechRecipe<'t, T>: RecipeEx<'t>;
+    |                                ++++
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/buildings.rs:141:24
+    |
+141 |     TechRecipe<'t, T>: RecipeEx,
+    |                        ^^^^^^^^ expected named lifetime parameter
+    |
+help: consider using the `'t` lifetime
+    |
+141 |     TechRecipe<'t, T>: RecipeEx<'t>,
+    |                                ++++
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/buildings.rs:160:29
+    |
+160 |         TechRecipe<'t, T2>: RecipeEx,
+    |                             ^^^^^^^^ expected named lifetime parameter
+    |
+help: consider using the `'t` lifetime
+    |
+160 |         TechRecipe<'t, T2>: RecipeEx<'t>,
+    |                                     ++++
+
+error[E0106]: missing lifetime specifier
+  --> rustorio/src/guide.rs:54:9
+   |
+54 | impl<R: FurnaceRecipe> GuideTopic for Furnace<'_, R> {
+   |         ^^^^^^^^^^^^^ expected named lifetime parameter
+   |
+   = note: for more information on higher-ranked polymorphism, visit https://doc.rust-lang.org/nomicon/hrtb.html
+help: consider making the bound lifetime-generic with a new `'a` lifetime
+   |
+54 | impl<R: for<'a> FurnaceRecipe<'a>> GuideTopic for Furnace<'_, R> {
+   |         +++++++              ++++
+help: consider introducing a named lifetime parameter
+   |
+54 | impl<'a, R: FurnaceRecipe<'a>> GuideTopic for Furnace<'_, R> {
+   |      +++                 ++++
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/recipes.rs:23:30
+    |
+ 23 | #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+    |                              ^^^^^^
+    |                              |
+    |                              expected named lifetime parameter
+    |                              in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:265:1
+    |
+265 | pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ------------------------------------------------------------------------------- in this expansion of `#[derive(Recipe)]`
+    |
+    = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/recipes.rs:37:30
+    |
+ 37 | #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+    |                              ^^^^^^
+    |                              |
+    |                              expected named lifetime parameter
+    |                              in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:265:1
+    |
+265 | pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ------------------------------------------------------------------------------- in this expansion of `#[derive(Recipe)]`
+    |
+    = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/recipes.rs:53:30
+    |
+ 53 | #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+    |                              ^^^^^^
+    |                              |
+    |                              expected named lifetime parameter
+    |                              in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:265:1
+    |
+265 | pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ------------------------------------------------------------------------------- in this expansion of `#[derive(Recipe)]`
+    |
+    = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/recipes.rs:71:30
+    |
+ 71 | #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+    |                              ^^^^^^
+    |                              |
+    |                              expected named lifetime parameter
+    |                              in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:265:1
+    |
+265 | pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ------------------------------------------------------------------------------- in this expansion of `#[derive(Recipe)]`
+    |
+    = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/recipes.rs:90:30
+    |
+ 90 | #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+    |                              ^^^^^^
+    |                              |
+    |                              expected named lifetime parameter
+    |                              in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:265:1
+    |
+265 | pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ------------------------------------------------------------------------------- in this expansion of `#[derive(Recipe)]`
+    |
+    = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/recipes.rs:104:30
+    |
+104 | #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+    |                              ^^^^^^
+    |                              |
+    |                              expected named lifetime parameter
+    |                              in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:265:1
+    |
+265 | pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ------------------------------------------------------------------------------- in this expansion of `#[derive(Recipe)]`
+    |
+    = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+
+error[E0106]: missing lifetime specifier
+   --> rustorio/src/recipes.rs:118:30
+    |
+118 | #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+    |                              ^^^^^^
+    |                              |
+    |                              expected named lifetime parameter
+    |                              in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:265:1
+    |
+265 | pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ------------------------------------------------------------------------------- in this expansion of `#[derive(Recipe)]`
+    |
+    = help: this function's return type contains a borrowed value, but there is no value for it to be borrowed from
+
+error[E0261]: use of undeclared lifetime name `'t`
+   --> rustorio/src/research.rs:29:17
+    |
+ 29 | #[derive(Debug, TechnologyEx)]
+    |                 ^^^^^^^^^^^^
+    |                 |
+    |                 undeclared lifetime
+    |                 in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:390:1
+    |
+390 | pub fn derive_technology(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ----------------------------------------------------------------------------------- in this expansion of `#[derive(TechnologyEx)]`
+
+error[E0261]: use of undeclared lifetime name `'t`
+   --> rustorio/src/research.rs:52:17
+    |
+ 52 | #[derive(Debug, TechnologyEx)]
+    |                 ^^^^^^^^^^^^
+    |                 |
+    |                 undeclared lifetime
+    |                 in this derive macro expansion
+    |
+   ::: /home/user/repos/rustorio/rustorio-derive/src/lib.rs:390:1
+    |
+390 | pub fn derive_technology(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    | ----------------------------------------------------------------------------------- in this expansion of `#[derive(TechnologyEx)]`
+
+error[E0106]: missing lifetime specifier
+  --> rustorio/src/territory.rs:62:24
+   |
+62 |     resources: Resource<OreType>,
+   |                        ^ expected named lifetime parameter
+   |
+help: consider introducing a named lifetime parameter
+   |
+57 ~ pub struct Territory<'a, OreType: ResourceType> {
+58 |     mining_tick: u64,
+...
+61 |     miners: u32,
+62 ~     resources: Resource<'a, OreType>,
+   |
+
+error[E0061]: this function takes 2 arguments but 1 argument was supplied
+   --> rustorio/src/territory.rs:90:27
+    |
+ 90 |         self.resources += resource(
+    |                           ^^^^^^^^
+ 91 |             u32::try_from(mining_tick_delta).expect("Mining tick delta too large") * self.miners,
+    |             ------------------------------------------------------------------------------------ argument #1 of type `&rustorio_engine::mod_reexports::Tick<'_, '_>` is missing
+    |
+note: function defined here
+   --> /home/user/repos/rustorio/rustorio-engine/src/resources.rs:109:14
+    |
+109 | pub const fn resource<'tick, R>(tick: &Tick<'tick, '_>, amount: u32) -> Resource<'tick, R>
+    |              ^^^^^^^^
+help: provide the argument
+    |
+ 90 -         self.resources += resource(
+ 91 -             u32::try_from(mining_tick_delta).expect("Mining tick delta too large") * self.miners,
+ 92 -         );
+ 90 +         self.resources += resource(/* &rustorio_engine::mod_reexports::Tick<'_, '_> */, u32::try_from(mining_tick_delta).expect("Mining tick delta too large") * self.miners);
+    |
+
+error[E0521]: borrowed data escapes outside of method
+  --> rustorio/src/territory.rs:99:9
+   |
+97 |     pub fn hand_mine<const AMOUNT: u32>(&mut self, tick: &mut Tick) -> Bundle<OreType, AMOUNT> {
+   |                                                    ----
+   |                                                    |
+   |                                                    `tick` is a reference that is only valid in the method body
+   |                                                    has type `&mut rustorio_engine::mod_reexports::Tick<'_, '1>`
+98 |         self.tick(tick);
+99 |         tick.advance_by((u64::from(AMOUNT)) * MINING_TICK_LENGTH);
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         `tick` escapes the method body here
+   |         argument requires that `'1` must outlive `'static`
+   |
+   = note: requirement occurs because of a mutable reference to `rustorio_engine::mod_reexports::Tick<'_, 'static>`
+   = note: mutable references are invariant over their type parameter
+   = help: see <https://doc.rust-lang.org/nomicon/subtyping.html> for more information about variance
+
+Some errors have detailed explanations: E0061, E0106, E0261, E0521.
+For more information about an error, try `rustc --explain E0061`.
+error: could not compile `rustorio` (lib) due to 22 previous errors

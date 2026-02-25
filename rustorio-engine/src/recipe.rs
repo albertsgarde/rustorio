@@ -204,7 +204,7 @@ impl_multi_bundle!(0 R1 N1, 1 R2 N2, 2 R3 N3);
 /// ```
 /// The recipe will then take 10 ticks per cycle, consuming 10 `Resource1`, 5 `Resource2`,
 /// and 1 `Resource3`, and produce 1 `Resource4` and 100 `Resource5`.
-pub trait Recipe {
+pub trait Recipe<'t> {
     /// Amount of ticks one cycle of the recipe takes to complete.
     const TIME: u64;
 
@@ -238,7 +238,7 @@ pub trait Recipe {
 }
 
 #[doc(hidden)]
-pub trait RecipeEx: Recipe {
+pub trait RecipeEx<'t>: Recipe<'t> {
     /// A type guaranteed to contain exactly the input resources for one recipe cycle.
     /// Used in handcrafting.
     type InputBundle: MultiBundleEx<AsResources = Self::Inputs>;
@@ -267,7 +267,7 @@ pub trait RecipeEx: Recipe {
 }
 
 /// A recipe that can be hand-crafted by the player.
-pub trait HandRecipe: std::fmt::Debug + Sealed + RecipeEx {
+pub trait HandRecipe<'t>: std::fmt::Debug + Sealed + RecipeEx<'t> {
     /// Crafts the recipe by consuming the input bundle and producing the output bundle.
     /// Advances the provided `Tick` by the recipe's time.
     fn craft(tick: &mut MainTick, inputs: Self::InputBundle) -> Self::OutputBundle {

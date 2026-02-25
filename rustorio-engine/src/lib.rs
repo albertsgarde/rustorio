@@ -83,6 +83,6 @@ pub mod mod_reexports {
         research::{ResearchPoint, Technology},
         resources::{Bundle, InsufficientResourceError, Resource, ResourceType},
         subfactory::{Subfactory, SubfactoryContents},
-        tick::Tick,
+        tick::{MainTick, Tick},
     };
 }

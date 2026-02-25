@@ -50,7 +50,7 @@ impl<M> MachineNotEmptyError<M> {
     }
 }
 
-impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
+impl<'t, R: Recipe<'t>> std::fmt::Display for MachineNotEmptyError<R> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -62,7 +62,7 @@ impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
 
 /// Basic machine that can process recipes.
 #[derive(Debug)]
-pub struct Machine<'tick, R: Recipe> {
+pub struct Machine<'tick, R: Recipe<'tick>> {
     inputs: R::Inputs,
     outputs: R::Outputs,
     tick: u64,
@@ -70,7 +70,7 @@ pub struct Machine<'tick, R: Recipe> {
     _marker: std::marker::PhantomData<&'tick R>,
 }
 
-impl<'tick, R: RecipeEx> Machine<'tick, R> {
+impl<'tick, R: RecipeEx<'tick>> Machine<'tick, R> {
     fn new_inner(tick: u64) -> Self {
         Self {
             inputs: R::new_inputs(),
@@ -108,7 +108,7 @@ impl<'tick, R: RecipeEx> Machine<'tick, R> {
 
     /// Changes the [`Recipe`](crate::recipe) of the machine.
     /// Returns the original machine if the machine has any inputs or outputs.
-    pub fn change_recipe<R2: RecipeEx>(
+    pub fn change_recipe<R2: RecipeEx<'tick>>(
         mut self,
         recipe: R2,
     ) -> Result<Machine<'tick, R2>, MachineNotEmptyError<Self>> {

@@ -105,7 +105,7 @@ impl RecipeItemList {
 
         let recipe_items = item_list
             .iter()
-            .map(|(_, ty)| quote! {#Crate::resources::Resource<#ty>});
+            .map(|(_, ty)| quote! {#Crate::resources::Resource<'t, #ty>});
 
         quote! {
             type #item_type_ident = (#(#recipe_items,)*);
@@ -147,7 +147,7 @@ impl RecipeItemList {
 
         let bundle_items = item_list
             .iter()
-            .map(|(amount, ty)| quote! {#Crate::resources::Bundle<#ty, #amount>});
+            .map(|(amount, ty)| quote! {#Crate::resources::Bundle<'t, #ty, #amount>});
 
         quote! {
             (#(#bundle_items,)*)
@@ -225,17 +225,17 @@ impl RecipeDetails {
 
         let new_inputs_method_stream = self
             .inputs
-            .generate_recipe_new_method("new_inputs", implementing_trait_path.clone());
+            .generate_recipe_new_method("new_inputs", quote! {#implementing_trait_path<'t>});
         let new_outputs_method_stream = self
             .outputs
-            .generate_recipe_new_method("new_outputs", implementing_trait_path.clone());
+            .generate_recipe_new_method("new_outputs", quote! {#implementing_trait_path<'t>});
 
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
         let name = &self.name;
         let ticks = &self.ticks;
         quote! {
-            impl #impl_generics #Crate::recipe::Recipe for #name #ty_generics #where_clause {
+            impl<'t, #impl_generics> #Crate::recipe::Recipe<'t> for #name #ty_generics #where_clause {
                 const TIME: u64 = #ticks;
 
                 #new_inputs_method_stream
@@ -253,7 +253,7 @@ impl RecipeDetails {
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         let name = &self.name;
         quote! {
-            impl #impl_generics #Crate::recipe::RecipeEx for #name #ty_generics #where_clause {
+            impl<'t, #impl_generics> #Crate::recipe::RecipeEx<'t> for #name #ty_generics #where_clause {
                 type InputBundle = #input_bundle_type;
                 type OutputBundle = #output_bundle_type;
             }
@@ -374,7 +374,7 @@ impl TechnologyDetails {
         let input_bundle_type = self.research_inputs.generate_bundle_type();
 
         quote! {
-            impl #impl_generics #Crate::research::TechnologyEx for #name #ty_generics #where_clause {
+            impl<'t> #impl_generics #Crate::research::TechnologyEx<'t> for #name #ty_generics #where_clause {
                 const POINT_RECIPE_TIME: u64 = #point_recipe_time;
                 const REQUIRED_RESEARCH_POINTS_EX: u32 = #research_point_cost;
                 type InputBundle = #input_bundle_type;

@@ -29,9 +29,9 @@ use crate::{
 ///
 /// See the [implementors](AssemblerRecipe#implementors) of the [`AssemblerRecipe`] trait for recipes that can be used in the assembler.
 #[derive(Debug)]
-pub struct Assembler<'t, R: AssemblerRecipe>(Machine<'t, R>);
+pub struct Assembler<'t, R: AssemblerRecipe<'t>>(Machine<'t, R>);
 
-impl<'t, R: AssemblerRecipe> Assembler<'t, R> {
+impl<'t, R: AssemblerRecipe<'t>> Assembler<'t, R> {
     /// Builds an assembler. Costs 12 [copper wires](crate::resources::CopperWire) and 6 [iron](crate::resources::Iron).
     pub fn build(
         tick: &Tick<'t, '_>,
@@ -45,7 +45,7 @@ impl<'t, R: AssemblerRecipe> Assembler<'t, R> {
 
     /// Changes the [`Recipe`](crate::recipes) of the assembler.
     /// Returns the original assembler if the the input and output buffers are not empty.
-    pub fn change_recipe<R2: AssemblerRecipe>(
+    pub fn change_recipe<R2: AssemblerRecipe<'t>>(
         self,
         recipe: R2,
     ) -> Result<Assembler<'t, R2>, MachineNotEmptyError<Self>> {
@@ -56,23 +56,23 @@ impl<'t, R: AssemblerRecipe> Assembler<'t, R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe>::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe<'t>>::Inputs {
         self.0.inputs(tick)
     }
 
     /// Amount of each input resource needed for one recipe cycle
-    pub const fn input_amounts(&self) -> <R as Recipe>::InputAmountsType {
-        <R as Recipe>::INPUT_AMOUNTS
+    pub const fn input_amounts(&self) -> <R as Recipe<'t>>::InputAmountsType {
+        <R as Recipe<'t>>::INPUT_AMOUNTS
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe>::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe<'t>>::Outputs {
         self.0.outputs(tick)
     }
 
     /// Amount of each output resource created per recipe cycle
-    pub const fn output_amounts(&self) -> <R as Recipe>::OutputAmountsType {
-        <R as Recipe>::OUTPUT_AMOUNTS
+    pub const fn output_amounts(&self) -> <R as Recipe<'t>>::OutputAmountsType {
+        <R as Recipe<'t>>::OUTPUT_AMOUNTS
     }
 }
 
@@ -86,9 +86,9 @@ impl<'t, R: AssemblerRecipe> Assembler<'t, R> {
 ///
 /// See the [implementors](FurnaceRecipe#implementors) of the [`FurnaceRecipe`] trait for recipes that can be used in the furnace.
 #[derive(Debug)]
-pub struct Furnace<'t, R: FurnaceRecipe>(Machine<'t, R>);
+pub struct Furnace<'t, R: FurnaceRecipe<'t>>(Machine<'t, R>);
 
-impl<'t, R: FurnaceRecipe> Furnace<'t, R> {
+impl<'t, R: FurnaceRecipe<'t>> Furnace<'t, R> {
     /// Builds a furnace. Costs 10 [iron](crate::resources::Iron).
     pub fn build(tick: &Tick<'t, '_>, recipe: R, iron: Bundle<Iron, 10>) -> Self {
         let _ = (recipe, iron);
@@ -97,7 +97,7 @@ impl<'t, R: FurnaceRecipe> Furnace<'t, R> {
 
     /// Changes the [`Recipe`](crate::recipes) of the furnace.
     /// Returns the original furnace if the the input and output buffers are not empty.
-    pub fn change_recipe<R2: FurnaceRecipe>(
+    pub fn change_recipe<R2: FurnaceRecipe<'t>>(
         self,
         recipe: R2,
     ) -> Result<Furnace<'t, R2>, MachineNotEmptyError<Self>> {
@@ -108,23 +108,23 @@ impl<'t, R: FurnaceRecipe> Furnace<'t, R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe>::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe<'t>>::Inputs {
         self.0.inputs(tick)
     }
 
     /// Amount of each input resource needed for one recipe cycle
-    pub const fn input_amounts(&self) -> <R as Recipe>::InputAmountsType {
-        <R as Recipe>::INPUT_AMOUNTS
+    pub const fn input_amounts(&self) -> <R as Recipe<'t>>::InputAmountsType {
+        <R as Recipe<'t>>::INPUT_AMOUNTS
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe>::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick<'t, '_>) -> &'a mut <R as Recipe<'t>>::Outputs {
         self.0.outputs(tick)
     }
 
     /// Amount of each output resource created per recipe cycle
-    pub const fn output_amounts(&self) -> <R as Recipe>::OutputAmountsType {
-        <R as Recipe>::OUTPUT_AMOUNTS
+    pub const fn output_amounts(&self) -> <R as Recipe<'t>>::OutputAmountsType {
+        <R as Recipe<'t>>::OUTPUT_AMOUNTS
     }
 }
 
@@ -134,11 +134,11 @@ impl<'t, R: FurnaceRecipe> Furnace<'t, R> {
 #[derive(Debug)]
 pub struct Lab<'t, T: Technology>(Machine<'t, TechRecipe<'t, T>>)
 where
-    TechRecipe<'t, T>: RecipeEx;
+    TechRecipe<'t, T>: RecipeEx<'t>;
 
 impl<'t, T: Technology> Lab<'t, T>
 where
-    TechRecipe<'t, T>: RecipeEx,
+    TechRecipe<'t, T>: RecipeEx<'t>,
 {
     /// Creates a new `Lab` producing research points for the specified technology.
     pub fn build(
@@ -157,7 +157,7 @@ where
         technology: &T2,
     ) -> Result<Lab<'t, T2>, MachineNotEmptyError<Self>>
     where
-        TechRecipe<'t, T2>: RecipeEx,
+        TechRecipe<'t, T2>: RecipeEx<'t>,
     {
         let _ = technology;
         match self.0.change_recipe(tech_recipe()) {
@@ -170,20 +170,20 @@ where
     pub fn inputs<'a>(
         &'a mut self,
         tick: &'a Tick<'t, '_>,
-    ) -> &'a mut <TechRecipe<'t, T> as Recipe>::Inputs {
+    ) -> &'a mut <TechRecipe<'t, T> as Recipe<'t>>::Inputs {
         self.0.inputs(tick)
     }
 
     /// Amount of each input resource needed for one recipe cycle
-    pub const fn input_amounts(&self) -> <TechRecipe<'t, T> as Recipe>::InputAmountsType {
-        <TechRecipe<'t, T> as Recipe>::INPUT_AMOUNTS
+    pub const fn input_amounts(&self) -> <TechRecipe<'t, T> as Recipe<'t>>::InputAmountsType {
+        <TechRecipe<'t, T> as Recipe<'t>>::INPUT_AMOUNTS
     }
 
     /// Get a mutable reference to output buffers.
     pub fn outputs<'a>(
         &'a mut self,
         tick: &'a Tick<'t, '_>,
-    ) -> &'a mut <TechRecipe<'t, T> as Recipe>::Outputs {
+    ) -> &'a mut <TechRecipe<'t, T> as Recipe<'t>>::Outputs {
         self.0.outputs(tick)
     }
 }

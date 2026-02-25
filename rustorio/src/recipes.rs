@@ -18,7 +18,7 @@ use crate::{
 };
 
 /// Any recipe that implements this trait can be used in an [`Assembler`](crate::buildings::Assembler).
-pub trait AssemblerRecipe: Debug + Sealed + RecipeEx {}
+pub trait AssemblerRecipe<'a>: Debug + Sealed + RecipeEx<'a> {}
 
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
 #[recipe_doc]
@@ -31,8 +31,8 @@ pub trait AssemblerRecipe: Debug + Sealed + RecipeEx {}
 #[recipe_ticks(1)]
 pub struct CopperWireRecipe;
 impl Sealed for CopperWireRecipe {}
-impl AssemblerRecipe for CopperWireRecipe {}
-impl HandRecipe for CopperWireRecipe {}
+impl<'a> AssemblerRecipe<'a> for CopperWireRecipe {}
+impl<'a> HandRecipe<'a> for CopperWireRecipe {}
 
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
 #[recipe_doc]
@@ -46,8 +46,8 @@ impl HandRecipe for CopperWireRecipe {}
 #[recipe_ticks(3)]
 pub struct ElectronicCircuitRecipe;
 impl Sealed for ElectronicCircuitRecipe {}
-impl AssemblerRecipe for ElectronicCircuitRecipe {}
-impl HandRecipe for ElectronicCircuitRecipe {}
+impl<'a> AssemblerRecipe<'a> for ElectronicCircuitRecipe {}
+impl<'a> HandRecipe<'a> for ElectronicCircuitRecipe {}
 
 /// A recipe for crafting red science packs.
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
@@ -62,8 +62,8 @@ impl HandRecipe for ElectronicCircuitRecipe {}
 #[recipe_ticks(10)]
 pub struct RedScienceRecipe;
 impl Sealed for RedScienceRecipe {}
-impl AssemblerRecipe for RedScienceRecipe {}
-impl HandRecipe for RedScienceRecipe {}
+impl<'a> AssemblerRecipe<'a> for RedScienceRecipe {}
+impl<'a> HandRecipe<'a> for RedScienceRecipe {}
 
 /// The recipe you need to win! An [`Assembler`](crate::buildings::Assembler) recipe that creates points.
 ///
@@ -81,10 +81,10 @@ impl HandRecipe for RedScienceRecipe {}
 #[non_exhaustive]
 pub struct PointRecipe;
 impl Sealed for PointRecipe {}
-impl AssemblerRecipe for PointRecipe {}
+impl<'a> AssemblerRecipe<'a> for PointRecipe {}
 
 /// Any recipe that implements this trait can be used in a [`Furnace`](crate::buildings::Furnace).
-pub trait FurnaceRecipe: Debug + Sealed + RecipeEx {}
+pub trait FurnaceRecipe<'a>: Debug + Sealed + RecipeEx<'a> {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts iron ore into iron.
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
@@ -98,7 +98,7 @@ pub trait FurnaceRecipe: Debug + Sealed + RecipeEx {}
 #[recipe_ticks(6)]
 pub struct IronSmelting;
 impl Sealed for IronSmelting {}
-impl FurnaceRecipe for IronSmelting {}
+impl<'a> FurnaceRecipe<'a> for IronSmelting {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts copper ore into copper.
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
@@ -112,7 +112,7 @@ impl FurnaceRecipe for IronSmelting {}
 #[recipe_ticks(6)]
 pub struct CopperSmelting;
 impl Sealed for CopperSmelting {}
-impl FurnaceRecipe for CopperSmelting {}
+impl<'a> FurnaceRecipe<'a> for CopperSmelting {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts iron into steel.
 #[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
@@ -127,4 +127,4 @@ impl FurnaceRecipe for CopperSmelting {}
 #[non_exhaustive]
 pub struct SteelSmelting;
 impl Sealed for SteelSmelting {}
-impl FurnaceRecipe for SteelSmelting {}
+impl<'a> FurnaceRecipe<'a> for SteelSmelting {}

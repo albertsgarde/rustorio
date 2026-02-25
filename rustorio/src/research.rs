@@ -34,13 +34,13 @@ resource_type!(
 pub struct SteelTechnology;
 impl Sealed for SteelTechnology {}
 
-impl Technology for SteelTechnology {
+impl<'t> Technology<'t> for SteelTechnology {
     const NAME: &'static str = "Steel";
     type Unlocks = (SteelSmelting, PointsTechnology);
 
     fn research(
         self,
-        research_points: Bundle<ResearchPoint<Self>, { Self::REQUIRED_RESEARCH_POINTS }>,
+        research_points: Bundle<'t, ResearchPoint<'t, Self>, { Self::REQUIRED_RESEARCH_POINTS }>,
     ) -> Self::Unlocks {
         let _ = research_points;
         (SteelSmelting, PointsTechnology)
@@ -57,13 +57,13 @@ impl Technology for SteelTechnology {
 pub struct PointsTechnology;
 impl Sealed for PointsTechnology {}
 
-impl Technology for PointsTechnology {
+impl<'t> Technology<'t> for PointsTechnology {
     const NAME: &'static str = "Points";
     type Unlocks = PointRecipe;
 
     fn research(
         self,
-        research_points: Bundle<ResearchPoint<Self>, { Self::REQUIRED_RESEARCH_POINTS }>,
+        research_points: Bundle<'t, ResearchPoint<'t, Self>, { Self::REQUIRED_RESEARCH_POINTS }>,
     ) -> Self::Unlocks {
         let _ = research_points;
         PointRecipe {}
