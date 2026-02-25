@@ -1,12 +1,12 @@
 use rustorio::{
-    Bundle, Resource, Tick,
+    Bundle, Tick,
     buildings::{Assembler, Furnace},
     gamemodes::TutorialStartingResources,
     recipes::{CopperSmelting, CopperWireRecipe},
     resources::{CopperOre, CopperWire},
     territory::Territory,
 };
-use rustorio_engine::{bundle, resources::EngineToken, time_travel::TickSnapshot};
+use rustorio_engine::{bundle, resources::EngineToken};
 
 pub struct Test;
 
@@ -45,33 +45,49 @@ fn tutorial() {
     rustorio::play::<GameMode>(user_main);
 }
 
-pub struct Subfactory {
-    snapshot: TickSnapshot,
-    furnace: Furnace<CopperSmelting>,
-    assembler: Assembler<CopperWireRecipe>,
-}
+use copper_wire_factory::CopperWireFactory;
+mod copper_wire_factory {
+    use rustorio::{
+        Resource, Tick,
+        buildings::{Assembler, Furnace},
+        recipes::{CopperSmelting, CopperWireRecipe},
+        resources::{CopperOre, CopperWire},
+    };
+    use rustorio_engine::time_travel::{OnEachTick, PastTick, Subfactory};
 
-impl Subfactory {
-    fn tick(&mut self, tick: &Tick) {
-        // On each past tick, move resources from the furnace to the assembler as soon as they're
-        // available.
-        self.snapshot
-            .on_each_tick(tick.snapshot(), |past| {
-                let outputs = self.furnace.past_outputs(past).unwrap();
-                if let Ok(bundle) = outputs.0.bundle::<1>() {
-                    self.assembler.past_inputs(past).unwrap().0.add(bundle);
-                }
-            })
-            .unwrap();
+    struct CopperWireFactoryInner {
+        furnace: Furnace<CopperSmelting>,
+        assembler: Assembler<CopperWireRecipe>,
     }
 
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut Resource<CopperOre> {
-        self.tick(tick);
-        &mut self.furnace.inputs(tick).0
+    impl OnEachTick for CopperWireFactoryInner {
+        fn on_each_tick<'tick>(&mut self, tick: &PastTick<'tick>) {
+            let outputs = self.furnace.past_outputs(tick).unwrap();
+            if let Ok(bundle) = outputs.0.bundle::<1>() {
+                self.assembler.past_inputs(tick).unwrap().0.add(bundle);
+            }
+        }
     }
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut Resource<CopperWire> {
-        self.tick(tick);
-        &mut self.assembler.outputs(tick).0
+
+    pub struct CopperWireFactory(Subfactory<CopperWireFactoryInner>);
+
+    impl CopperWireFactory {
+        pub const fn new(
+            tick: &Tick,
+            furnace: Furnace<CopperSmelting>,
+            assembler: Assembler<CopperWireRecipe>,
+        ) -> Self {
+            CopperWireFactory(Subfactory::new(
+                tick,
+                CopperWireFactoryInner { furnace, assembler },
+            ))
+        }
+        pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut Resource<CopperOre> {
+            &mut self.0.inner(tick).furnace.inputs(tick).0
+        }
+        pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut Resource<CopperWire> {
+            &mut self.0.inner(tick).assembler.outputs(tick).0
+        }
     }
 }
 
@@ -84,11 +100,7 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Vi
         assembler,
     } = starting_resources;
 
-    let mut subfactory = Subfactory {
-        snapshot: tick.snapshot(),
-        furnace,
-        assembler,
-    };
+    let mut subfactory = CopperWireFactory::new(&tick, furnace, assembler);
 
     let copper_ore = copper_territory.hand_mine::<4>(&mut tick);
 

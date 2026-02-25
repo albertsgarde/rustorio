@@ -132,3 +132,35 @@ where
         Self::from_inner(bundle.x.into())
     }
 }
+
+/// A helper for making reusable subfactories.
+pub struct Subfactory<F: OnEachTick> {
+    snapshot: TickSnapshot,
+    f: F,
+}
+
+/// A struct containing machines that wants to be updated at every tick. Used in `Subfactory`.
+pub trait OnEachTick {
+    /// Called on every past tick whenever the factory is accessed.
+    fn on_each_tick<'tick>(&mut self, tick: &PastTick<'tick>);
+}
+
+impl<F: OnEachTick> Subfactory<F> {
+    /// Create a new subfactory.
+    pub const fn new(tick: &Tick, f: F) -> Self {
+        Self {
+            snapshot: tick.snapshot(),
+            f,
+        }
+    }
+
+    /// Access the contained machines.
+    pub fn inner<'a>(&'a mut self, tick: &'a Tick) -> &'a mut F {
+        self.snapshot
+            .on_each_tick(tick.snapshot(), |past_tick| {
+                self.f.on_each_tick(past_tick);
+            })
+            .unwrap();
+        &mut self.f
+    }
+}
