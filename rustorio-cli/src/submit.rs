@@ -3,10 +3,13 @@ use clap::Args;
 use reqwest::blocking::Client;
 use rustorio_common::SubmitRunRequest;
 
-use crate::ProjectInfo;
+use crate::project::ProjectInfo;
 
 #[derive(Args)]
 pub struct SubmitArgs {
+    /// Name of the save game to submit.
+    /// This should be the name of a folder in `src/bin` that contains a Rustorio save game.
+    /// For example, if you have a save game in `src/bin/tutorial`, you can submit it with `rustorio submit tutorial`.
     #[clap()]
     save_name: String,
 }
@@ -18,7 +21,7 @@ impl SubmitArgs {
 
         let SubmitArgs { save_name } = self;
 
-        let play_output = crate::play(&project_info, save_name).with_context(|| {
+        let play_output = project_info.play(save_name).with_context(|| {
             format!("Failed to get play output for save with name '{save_name}'")
         })?;
 
