@@ -121,6 +121,21 @@ where
         let bundle = self.as_inner_mut().bundle()?;
         Ok(Past::from_inner(bundle))
     }
+
+    /// Makes this resource available to the present.
+    pub fn into_present(self) -> Resource<R> {
+        self.x
+    }
+}
+
+impl<'tick, R, const AMOUNT: u32> Past<'tick, Bundle<R, AMOUNT>>
+where
+    R: ResourceType,
+{
+    /// Makes this bundle available to the present.
+    pub fn into_present(self) -> Bundle<R, AMOUNT> {
+        self.x
+    }
 }
 
 impl<'tick, R, const AMOUNT: u32> From<Past<'tick, Bundle<R, AMOUNT>>> for Past<'tick, Resource<R>>
