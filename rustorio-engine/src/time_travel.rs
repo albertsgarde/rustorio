@@ -98,7 +98,6 @@ impl<'tick, X> Past<'tick, X> {
             phantom: PhantomData,
         }
     }
-    #[expect(unused)]
     fn from_inner_mut(x: &mut X) -> &mut Self {
         // Safety: `Past` is `repr(transparent)`; the types are otherwise the same.
         unsafe { std::mem::transmute(x) }
@@ -162,5 +161,45 @@ impl<F: OnEachTick> Subfactory<F> {
             })
             .unwrap();
         &mut self.f
+    }
+}
+
+/// An item that can store resources across time. This should be rarely needed since the
+/// inputs/outputs of machines already work like that, but this exists if needed.
+/// Basically a machine with a recipe that does nothing.
+#[derive(Debug)]
+pub struct ResourceStore<R: ResourceType> {
+    resource: Resource<R>,
+    tick: TickSnapshot,
+}
+
+impl<R: ResourceType> ResourceStore<R> {
+    /// Create a new resource store.
+    pub fn new(tick: TickSnapshot) -> Self {
+        Self {
+            resource: Default::default(),
+            tick,
+        }
+    }
+
+    /// Access the contained resource in the present.
+    pub fn resources<'a>(&'a mut self, tick: &'a Tick) -> &'a mut Resource<R> {
+        self.tick_to(tick.snapshot()).unwrap();
+        &mut self.resource
+    }
+
+    /// Access the contained resource in the past if the store has not yet been observed in the
+    /// present.
+    pub fn past_resource<'a, 'tick>(
+        &'a mut self,
+        tick: &'a PastTick<'tick>,
+    ) -> Result<&'a mut Past<'tick, Resource<R>>, BackwardTickingError> {
+        self.tick_to(tick.as_snapshot())?;
+        Ok(Past::from_inner_mut(&mut self.resource))
+    }
+
+    fn tick_to(&mut self, until: TickSnapshot) -> Result<(), BackwardTickingError> {
+        self.tick.advance_to(until)?;
+        Ok(())
     }
 }
