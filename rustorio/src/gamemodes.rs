@@ -47,6 +47,8 @@ impl GameMode for Tutorial {
     type VictoryResources = Bundle<Copper, 4>;
 
     const NAME: &str = "tutorial";
+
+    const DEFAULT_MAX_TICK: u64 = 1_000_000;
 }
 
 /// Starting resources for the standard game mode. Includes 10 iron and the ability to research points.
@@ -79,4 +81,6 @@ impl GameMode for Standard {
     type VictoryResources = Bundle<Point, 200>;
 
     const NAME: &str = "standard";
+
+    const DEFAULT_MAX_TICK: u64 = 1_000_000;
 }

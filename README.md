@@ -26,12 +26,12 @@ You can use this to create a [`Furnace`](https://docs.rs/rustorio/latest/rustori
     let copper_ore = copper_territory.hand_mine::<8>(&mut tick);
 
     furnace.inputs(&tick).0 += copper_ore;
-    tick.advance_until(|tick| furnace.outputs(tick).0.amount() >= 1, 100);
+    tick.advance_until(|tick| furnace.outputs(tick).0 >= 1);
 ```
 
 Because none of these types implement `Copy` or `Clone` and because they all have hidden fields, the only way (I hope) to create them is through the use of other resources, or in the case of ore, [time](https://docs.rs/rustorio/latest/rustorio/struct.Tick.html).
 
-The game is pretty simple and easy right now, but I have many ideas for future features. I really enjoy figuring out how to wrangle the Rust language into doing what I want in this way, and I really hope some of you enjoy this kind of thing as well. Please do give it a try and tell me what you think. I'm especially interested in hearing what makes it work or not work as a *game*. It's a very weird user interface, so we're kinda reinventing some parts of game design from scratch here.
+The game is pretty simple and easy right now, but I have many ideas for future features. I really enjoy figuring out how to wrangle the Rust language into doing what I want, and I really hope you enjoy playing it. Please do give it a try and tell me what you think. I'm especially interested in hearing what makes it work or not work as a *game*. It's a very weird user interface, so we're kinda reinventing some parts of game design from scratch here.
 
 ## How to play
 1. Install [Rust](https://www.rust-lang.org/tools/install). Specifically it's
