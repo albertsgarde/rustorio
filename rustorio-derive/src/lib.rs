@@ -50,16 +50,10 @@ impl Parse for RecipeItemsAttr {
 struct RecipeItemList {
     item_list: Vec<(u32, Type)>,
     item_type_ident: Ident,
-    amount_const_ident: Ident,
 }
 
 impl RecipeItemList {
-    fn new(
-        attr: &Attribute,
-        attr_name: &str,
-        item_type_name: &str,
-        amount_const_name: &str,
-    ) -> Self {
+    fn new(attr: &Attribute, attr_name: &str, item_type_name: &str) -> Self {
         let Ok(inner) = attr.parse_args::<RecipeItemsAttr>() else {
             panic!("Invalid \"{attr_name}\" args");
         };
@@ -75,33 +69,26 @@ impl RecipeItemList {
             })
             .collect::<Vec<_>>();
         let item_type_ident = Ident::new(item_type_name, Span::call_site());
-        let amount_const_ident = Ident::new(amount_const_name, Span::call_site());
 
         Self {
             item_list: per_type,
             item_type_ident,
-            amount_const_ident,
         }
     }
 
     fn new_inputs(attr: &Attribute) -> Self {
-        Self::new(attr, "recipe_inputs", "Inputs", "INPUT_AMOUNTS")
+        Self::new(attr, "recipe_inputs", "InputResources")
     }
 
     fn new_outputs(attr: &Attribute) -> Self {
-        Self::new(attr, "recipe_outputs", "Outputs", "OUTPUT_AMOUNTS")
+        Self::new(attr, "recipe_outputs", "OutputResources")
     }
 
-    fn generate_recipe_direction(&self, amount_type_name: &str) -> TokenStream {
+    fn generate_recipe_direction(&self) -> TokenStream {
         let RecipeItemList {
             item_list,
             item_type_ident,
-            amount_const_ident,
         } = self;
-
-        let amount_type_ident = Ident::new(amount_type_name, Span::call_site());
-        let amount_types = item_list.iter().map(|_| quote! {u32}).collect::<Vec<_>>();
-        let amounts = item_list.iter().map(|(amount, _)| amount);
 
         let recipe_items = item_list
             .iter()
@@ -109,32 +96,6 @@ impl RecipeItemList {
 
         quote! {
             type #item_type_ident = (#(#recipe_items,)*);
-
-            type #amount_type_ident = (#(#amount_types,)*);
-            const #amount_const_ident: (#(#amount_types,)*) = (#(#amounts,)*);
-        }
-    }
-
-    fn generate_recipe_new_method(
-        &self,
-        new_fn_name: &str,
-        implementing_trait: TokenStream,
-    ) -> TokenStream {
-        let RecipeItemList {
-            item_list,
-            item_type_ident,
-            amount_const_ident: _,
-        } = self;
-
-        let new_fn_ident = Ident::new(new_fn_name, Span::call_site());
-        let new_values = item_list
-            .iter()
-            .map(|_| quote! {#Crate::resources::Resource::new_empty()});
-
-        quote! {
-            fn #new_fn_ident() -> <Self as #implementing_trait>::#item_type_ident {
-                (#(#new_values,)*)
-            }
         }
     }
 
@@ -142,7 +103,6 @@ impl RecipeItemList {
         let RecipeItemList {
             item_list,
             item_type_ident: _,
-            amount_const_ident: _,
         } = self;
 
         let bundle_items = item_list
@@ -219,16 +179,10 @@ impl RecipeDetails {
     }
 
     fn recipe_impl(&self) -> TokenStream {
-        let implementing_trait_path = quote! {#Crate::recipe::Recipe};
-        let inputs_stream = self.inputs.generate_recipe_direction("InputAmountsType");
-        let outputs_stream = self.outputs.generate_recipe_direction("OutputAmountsType");
-
-        let new_inputs_method_stream = self
-            .inputs
-            .generate_recipe_new_method("new_inputs", implementing_trait_path.clone());
-        let new_outputs_method_stream = self
-            .outputs
-            .generate_recipe_new_method("new_outputs", implementing_trait_path.clone());
+        let inputs_stream = self.inputs.generate_recipe_direction();
+        let outputs_stream = self.outputs.generate_recipe_direction();
+        let input_bundle_type = self.inputs.generate_bundle_type();
+        let output_bundle_type = self.outputs.generate_bundle_type();
 
         let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
 
@@ -238,24 +192,11 @@ impl RecipeDetails {
             impl #impl_generics #Crate::recipe::Recipe for #name #ty_generics #where_clause {
                 const TIME: u64 = #ticks;
 
-                #new_inputs_method_stream
-                #new_outputs_method_stream
+                type InputBundle = #input_bundle_type;
+                type OutputBundle = #output_bundle_type;
 
                 #inputs_stream
                 #outputs_stream
-            }
-        }
-    }
-
-    fn recipe_ex_impl(&self) -> TokenStream {
-        let input_bundle_type = self.inputs.generate_bundle_type();
-        let output_bundle_type = self.outputs.generate_bundle_type();
-        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
-        let name = &self.name;
-        quote! {
-            impl #impl_generics #Crate::recipe::RecipeEx for #name #ty_generics #where_clause {
-                type InputBundle = #input_bundle_type;
-                type OutputBundle = #output_bundle_type;
             }
         }
     }
@@ -266,14 +207,6 @@ pub fn derive_recipe(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     let input = parse_macro_input!(input as DeriveInput);
     let recipe_info = RecipeDetails::from_input(input);
     let output = recipe_info.recipe_impl();
-    proc_macro::TokenStream::from(output)
-}
-
-#[proc_macro_derive(RecipeEx, attributes(recipe_inputs, recipe_outputs, recipe_ticks))]
-pub fn derive_recipe_ex(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let recipe_info = RecipeDetails::from_input(input);
-    let output = recipe_info.recipe_ex_impl();
     proc_macro::TokenStream::from(output)
 }
 

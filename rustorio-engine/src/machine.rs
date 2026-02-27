@@ -9,7 +9,7 @@
 //! ```
 
 use crate::{
-    recipe::{Recipe, RecipeEx},
+    recipe::{MultiBundleEx, Recipe, RecipeEx},
     tick::Tick,
 };
 
@@ -63,8 +63,8 @@ impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
 /// Basic machine that can process recipes.
 #[derive(Debug)]
 pub struct Machine<R: Recipe> {
-    inputs: R::Inputs,
-    outputs: R::Outputs,
+    inputs: R::InputResources,
+    outputs: R::OutputResources,
     tick: u64,
     crafting_time: u64,
 }
@@ -72,8 +72,8 @@ pub struct Machine<R: Recipe> {
 impl<R: RecipeEx> Machine<R> {
     fn new_inner(tick: u64) -> Self {
         Self {
-            inputs: R::new_inputs(),
-            outputs: R::new_outputs(),
+            inputs: Default::default(),
+            outputs: Default::default(),
             tick,
             crafting_time: 0,
         }
@@ -85,23 +85,23 @@ impl<R: RecipeEx> Machine<R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::InputResources {
         self.tick(tick);
         &mut self.inputs
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut R::OutputResources {
         self.tick(tick);
         &mut self.outputs
     }
 
     fn iter_inputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        R::iter_inputs(&mut self.inputs)
+        <R::InputBundle as MultiBundleEx>::iter(&mut self.inputs)
     }
 
     fn iter_outputs(&mut self) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        R::iter_outputs(&mut self.outputs)
+        <R::OutputBundle as MultiBundleEx>::iter(&mut self.outputs)
     }
 
     /// Changes the [`Recipe`](crate::recipe) of the machine.

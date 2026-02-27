@@ -20,7 +20,7 @@ use crate::{
 /// Any recipe that implements this trait can be used in an [`Assembler`](crate::buildings::Assembler).
 pub trait AssemblerRecipe: Debug + Sealed + RecipeEx {}
 
-#[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[derive(Debug, Clone, Copy, Recipe)]
 #[recipe_doc]
 #[recipe_inputs(
     (1, Copper),
@@ -34,7 +34,7 @@ impl Sealed for CopperWireRecipe {}
 impl AssemblerRecipe for CopperWireRecipe {}
 impl HandRecipe for CopperWireRecipe {}
 
-#[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[derive(Debug, Clone, Copy, Recipe)]
 #[recipe_doc]
 #[recipe_inputs(
     (1, Iron),
@@ -50,7 +50,7 @@ impl AssemblerRecipe for ElectronicCircuitRecipe {}
 impl HandRecipe for ElectronicCircuitRecipe {}
 
 /// A recipe for crafting red science packs.
-#[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[derive(Debug, Clone, Copy, Recipe)]
 #[recipe_doc]
 #[recipe_inputs(
     (1, Iron),
@@ -68,7 +68,7 @@ impl HandRecipe for RedScienceRecipe {}
 /// The recipe you need to win! An [`Assembler`](crate::buildings::Assembler) recipe that creates points.
 ///
 /// You can unlock this recipe by researching [`PointsTechnology`](crate::research::PointsTechnology).
-#[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[derive(Debug, Clone, Copy, Recipe)]
 #[recipe_doc]
 #[recipe_inputs(
     (4, ElectronicCircuit),
@@ -87,7 +87,7 @@ impl AssemblerRecipe for PointRecipe {}
 pub trait FurnaceRecipe: Debug + Sealed + RecipeEx {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts iron ore into iron.
-#[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[derive(Debug, Clone, Copy, Recipe)]
 #[recipe_doc]
 #[recipe_inputs(
     (1, IronOre),
@@ -101,7 +101,7 @@ impl Sealed for IronSmelting {}
 impl FurnaceRecipe for IronSmelting {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts copper ore into copper.
-#[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[derive(Debug, Clone, Copy, Recipe)]
 #[recipe_doc]
 #[recipe_inputs(
     (1, CopperOre),
@@ -115,7 +115,7 @@ impl Sealed for CopperSmelting {}
 impl FurnaceRecipe for CopperSmelting {}
 
 /// A [`Furnace`](crate::buildings::Furnace) recipe that smelts iron into steel.
-#[derive(Debug, Clone, Copy, Recipe, RecipeEx)]
+#[derive(Debug, Clone, Copy, Recipe)]
 #[recipe_doc]
 #[recipe_inputs(
     (5, Iron),

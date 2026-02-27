@@ -9,7 +9,7 @@
 
 use rustorio_engine::{
     machine::{Machine, MachineNotEmptyError},
-    recipe::{Recipe, RecipeEx},
+    recipe::{MultiBundle, Recipe, RecipeEx},
     research::{TechRecipe, Technology, tech_recipe},
 };
 
@@ -56,23 +56,23 @@ impl<R: AssemblerRecipe> Assembler<R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::InputResources {
         self.0.inputs(tick)
     }
 
     /// Amount of each input resource needed for one recipe cycle
-    pub const fn input_amounts(&self) -> <R as Recipe>::InputAmountsType {
-        <R as Recipe>::INPUT_AMOUNTS
+    pub const fn input_amounts(&self) -> <R::InputBundle as MultiBundle>::AmountsType {
+        <R::InputBundle as MultiBundle>::AMOUNTS
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::OutputResources {
         self.0.outputs(tick)
     }
 
     /// Amount of each output resource created per recipe cycle
-    pub const fn output_amounts(&self) -> <R as Recipe>::OutputAmountsType {
-        <R as Recipe>::OUTPUT_AMOUNTS
+    pub const fn output_amounts(&self) -> <R::OutputBundle as MultiBundle>::AmountsType {
+        <R::OutputBundle as MultiBundle>::AMOUNTS
     }
 }
 
@@ -108,23 +108,23 @@ impl<R: FurnaceRecipe> Furnace<R> {
     }
 
     /// Update internal state and access input buffers.
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::Inputs {
+    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::InputResources {
         self.0.inputs(tick)
     }
 
     /// Amount of each input resource needed for one recipe cycle
-    pub const fn input_amounts(&self) -> <R as Recipe>::InputAmountsType {
-        <R as Recipe>::INPUT_AMOUNTS
+    pub const fn input_amounts(&self) -> <R::InputBundle as MultiBundle>::AmountsType {
+        <R::InputBundle as MultiBundle>::AMOUNTS
     }
 
     /// Update internal state and access output buffers.
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::Outputs {
+    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <R as Recipe>::OutputResources {
         self.0.outputs(tick)
     }
 
     /// Amount of each output resource created per recipe cycle
-    pub const fn output_amounts(&self) -> <R as Recipe>::OutputAmountsType {
-        <R as Recipe>::OUTPUT_AMOUNTS
+    pub const fn output_amounts(&self) -> <R::OutputBundle as MultiBundle>::AmountsType {
+        <R::OutputBundle as MultiBundle>::AMOUNTS
     }
 }
 
@@ -167,17 +167,25 @@ where
     }
 
     /// Get a mutable reference to input buffers.
-    pub fn inputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <TechRecipe<T> as Recipe>::Inputs {
+    pub fn inputs<'a>(
+        &'a mut self,
+        tick: &'a Tick,
+    ) -> &'a mut <TechRecipe<T> as Recipe>::InputResources {
         self.0.inputs(tick)
     }
 
     /// Amount of each input resource needed for one recipe cycle
-    pub const fn input_amounts(&self) -> <TechRecipe<T> as Recipe>::InputAmountsType {
-        <TechRecipe<T> as Recipe>::INPUT_AMOUNTS
+    pub const fn input_amounts(
+        &self,
+    ) -> <<TechRecipe<T> as Recipe>::InputBundle as MultiBundle>::AmountsType {
+        <<TechRecipe<T> as Recipe>::InputBundle as MultiBundle>::AMOUNTS
     }
 
     /// Get a mutable reference to output buffers.
-    pub fn outputs<'a>(&'a mut self, tick: &'a Tick) -> &'a mut <TechRecipe<T> as Recipe>::Outputs {
+    pub fn outputs<'a>(
+        &'a mut self,
+        tick: &'a Tick,
+    ) -> &'a mut <TechRecipe<T> as Recipe>::OutputResources {
         self.0.outputs(tick)
     }
 }

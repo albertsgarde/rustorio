@@ -9,7 +9,7 @@ pub use rustorio_derive::{TechnologyEx, technology_doc};
 
 use crate::{
     ResourceType, Sealed,
-    recipe::{MultiBundle, MultiBundleEx, Recipe, RecipeEx},
+    recipe::{MultiBundle, MultiBundleEx, Recipe},
     resources::{Bundle, Resource},
 };
 
@@ -67,27 +67,11 @@ where
     T: Technology,
 {
     const TIME: u64 = T::POINT_RECIPE_TIME;
-    type Inputs = <T::InputBundle as MultiBundle>::AsResources;
-    type InputAmountsType = <T::InputBundle as MultiBundle>::AmountsType;
-    const INPUT_AMOUNTS: Self::InputAmountsType = <T::InputBundle as MultiBundle>::AMOUNTS;
-    type Outputs = (Resource<ResearchPoint<T>>,);
-
-    type OutputAmountsType = (u32,);
-
-    const OUTPUT_AMOUNTS: (u32,) = (1,);
-
-    fn new_inputs() -> Self::Inputs {
-        Default::default()
-    }
-
-    fn new_outputs() -> Self::Outputs {
-        Default::default()
-    }
-}
-
-impl<T: Technology> RecipeEx for TechRecipe<T> {
     type InputBundle = T::InputBundle;
     type OutputBundle = Bundle<ResearchPoint<T>, 1>;
+
+    type InputResources = <T::InputBundle as MultiBundle>::AsResources;
+    type OutputResources = (Resource<ResearchPoint<T>>,);
 }
 
 /// Creates a new `TechRecipe<T>` for use in a `Machine`.
