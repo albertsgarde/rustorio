@@ -23,20 +23,34 @@ use std::fmt::Display;
 pub struct Tick {
     /// The current tick number.
     tick: u64,
+    /// Whether the tick should print a log message on advancement. By default, this is `false`.
     log: bool,
+    /// The maximum tick number before the game panics.
+    /// This is to prevent infinite loops, so should be set low enough that the game will crash quickly, but high enough that it won't crash during normal play.
+    /// Initial value is set by the gamemode, but the player can change it using the [`set_max_tick`](Tick::set_max_tick) method.
+    max_tick: u64,
 }
 
 impl Tick {
-    pub(crate) const fn start() -> Self {
+    pub(crate) const fn start(max_tick: u64) -> Self {
         Self {
             tick: 0,
             log: false,
+            max_tick,
         }
     }
 
     /// Sets whether or not to log on tick advancement.
     pub const fn log(&mut self, log: bool) {
         self.log = log;
+    }
+
+    /// Sets the maximum tick.
+    /// If you attempt to advance beyond this number of ticks, the game will panic.
+    /// This is to prevent infinite loops, so if you think you are hitting this without an infinite loop, you should increase this number.
+    /// The initial value is set by the gamemode, but you can change it using this method.
+    pub const fn set_max_tick(&mut self, max_tick: u64) {
+        self.max_tick = max_tick;
     }
 
     /// Advances the game by one tick.
@@ -53,6 +67,12 @@ impl Tick {
     /// If you want to disable this, use the [`log`](Tick::log) method.
     pub fn advance_by(&mut self, ticks: u64) {
         self.tick = self.tick.checked_add(ticks).expect("Tick overflow. Well done you've found an exploit! Or you would have if `https://github.com/albertsgarde/rustorio/issues/3` hadn't beaten you to it!");
+        if self.tick > self.max_tick {
+            panic!(
+                "Tick {} exceeded the maximum tick of {}. This is likely due to an infinite loop. If you intend to reach this tick, please increase the maximum tick using `Tick::set_max_tick`.",
+                self.tick, self.max_tick
+            );
+        }
         if self.log {
             println!("{self}");
         }
@@ -74,15 +94,13 @@ impl Tick {
     ///
     /// By default prints the current tick number to the console every tick.
     /// If you want to disable this, use the [`log`](Tick::log) method.
-    pub fn advance_until<F>(&mut self, mut condition: F, max_ticks: u64) -> bool
+    pub fn advance_until<F>(&mut self, mut condition: F)
     where
         F: FnMut(&Tick) -> bool,
     {
-        let start_tick = self.tick;
-        while !condition(self) && self.tick - start_tick < max_ticks {
+        while !condition(self) {
             self.advance();
         }
-        self.tick - start_tick < max_ticks
     }
 
     /// Returns the current tick number.

@@ -22,4 +22,8 @@ pub trait GameMode {
     /// Human readable unique name of the gamemode.
     /// Used when submitting to register what gamemode.
     const NAME: &str;
+
+    /// The default tick at which the game panics.
+    /// See ['Tick::set_max_tick'](crate::tick::Tick::set_max_tick) for details.
+    const DEFAULT_MAX_TICK: u64;
 }

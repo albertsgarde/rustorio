@@ -36,7 +36,7 @@ pub fn play<G: GameMode>(main: fn(Tick, G::StartingResources) -> (Tick, G::Victo
             "play() can only be called once per program execution to prevent cheating via multithreading."
         );
     }
-    let tick = Tick::start();
+    let tick = Tick::start(G::DEFAULT_MAX_TICK);
     let start_resources = G::StartingResources::init(&tick);
     let (tick, _points) = main(tick, start_resources);
     if let Ok(port) = std::env::var(PORT_ENV_NAME) {
