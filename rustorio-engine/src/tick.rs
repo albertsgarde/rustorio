@@ -1,4 +1,56 @@
+//! Ticks keep track of time elapsed in the game.
 use std::fmt::Display;
+
+/// A record of a point in time.
+#[derive(Debug, Clone, Copy)]
+pub struct TickSnapshot {
+    /// The tick number.
+    tick: u64,
+}
+
+/// Error returned when trying to move a tick snapshot backwards in time.
+pub struct BackwardTickingError;
+
+impl std::fmt::Debug for BackwardTickingError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Tried to move a tick snapshot backwards in time",)
+    }
+}
+
+impl TickSnapshot {
+    /// Create a snapshot at the given tick number.
+    pub const fn new(tick: u64) -> Self {
+        Self { tick }
+    }
+
+    /// Returns the current tick number.
+    pub const fn cur(&self) -> u64 {
+        self.tick
+    }
+
+    /// Advances the snapshot by the specified number of ticks.
+    pub const fn advance_by(&mut self, ticks: u64) {
+        self.tick = self.tick.checked_add(ticks).expect(
+            "Tick overflow. Well done you've found an exploit! \
+            Or you would have if `https://github.com/albertsgarde/rustorio/issues/3` \
+            hadn't beaten you to it!",
+        );
+    }
+
+    /// Advance the snapshot to the target snapshot, returning the number of ticks elapsed.
+    pub fn advance_to(
+        &mut self,
+        until: impl Into<TickSnapshot>,
+    ) -> Result<u64, BackwardTickingError> {
+        let until = until.into();
+        if let Some(diff) = until.tick.checked_sub(self.tick) {
+            self.tick = until.tick;
+            Ok(diff)
+        } else {
+            Err(BackwardTickingError)
+        }
+    }
+}
 
 /// The tick is used to keep track of time in the game.
 /// You can advance the game using the [`advance`](Tick::advance) method or similar.
@@ -21,8 +73,8 @@ use std::fmt::Display;
 /// ```
 #[derive(Debug)]
 pub struct Tick {
-    /// The current tick number.
-    tick: u64,
+    /// The current point in time.
+    tick: TickSnapshot,
     /// Whether the tick should print a log message on advancement. By default, this is `false`.
     log: bool,
     /// The maximum tick number before the game panics.
@@ -34,7 +86,7 @@ pub struct Tick {
 impl Tick {
     pub(crate) const fn start(max_tick: u64) -> Self {
         Self {
-            tick: 0,
+            tick: TickSnapshot::new(0),
             log: false,
             max_tick,
         }
@@ -66,11 +118,14 @@ impl Tick {
     /// By default prints the current tick number to the console.
     /// If you want to disable this, use the [`log`](Tick::log) method.
     pub fn advance_by(&mut self, ticks: u64) {
-        self.tick = self.tick.checked_add(ticks).expect("Tick overflow. Well done you've found an exploit! Or you would have if `https://github.com/albertsgarde/rustorio/issues/3` hadn't beaten you to it!");
-        if self.tick > self.max_tick {
+        self.tick.advance_by(ticks);
+        if self.tick.cur() > self.max_tick {
             panic!(
-                "Tick {} exceeded the maximum tick of {}. This is likely due to an infinite loop. If you intend to reach this tick, please increase the maximum tick using `Tick::set_max_tick`.",
-                self.tick, self.max_tick
+                "Tick {} exceeded the maximum tick of {}. \
+                This is likely due to an infinite loop. \
+                If you intend to reach this tick, please increase the maximum tick using `Tick::set_max_tick`.",
+                self.tick.cur(),
+                self.max_tick
             );
         }
         if self.log {
@@ -84,8 +139,9 @@ impl Tick {
     /// By default prints the current tick number to the console.
     /// If you want to disable this, use the [`log`](Tick::log) method.
     pub fn advance_to_tick(&mut self, target_tick: u64) {
-        if target_tick > self.tick {
-            self.advance_by(target_tick - self.tick);
+        // self.tick.advance_to(TickSnapshot::new(target_tick))
+        if target_tick > self.tick.cur() {
+            self.advance_by(target_tick - self.tick.cur());
         }
     }
 
@@ -105,42 +161,53 @@ impl Tick {
 
     /// Returns the current tick number.
     pub const fn cur(&self) -> u64 {
+        self.tick.cur()
+    }
+
+    /// Record a snapshot of a past tick.
+    pub const fn snapshot(&self) -> TickSnapshot {
         self.tick
     }
 }
 
 impl From<&Tick> for u64 {
     fn from(tick: &Tick) -> Self {
-        tick.tick
+        tick.tick.cur()
+    }
+}
+
+impl From<&Tick> for TickSnapshot {
+    fn from(tick: &Tick) -> Self {
+        tick.snapshot()
     }
 }
 
 impl PartialOrd<u64> for &Tick {
     fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
-        Some(self.tick.cmp(other))
+        Some(self.tick.cur().cmp(other))
     }
 }
 
 impl PartialOrd<&Tick> for u64 {
     fn partial_cmp(&self, other: &&Tick) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other.tick))
+        Some(self.cmp(&other.tick.cur()))
     }
 }
 
 impl PartialEq<u64> for &Tick {
     fn eq(&self, other: &u64) -> bool {
-        self.tick == *other
+        self.tick.cur() == *other
     }
 }
 
 impl PartialEq<&Tick> for u64 {
     fn eq(&self, other: &&Tick) -> bool {
-        *self == other.tick
+        *self == other.tick.cur()
     }
 }
 
 impl Display for Tick {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Tick {}", self.tick)
+        write!(f, "Tick {}", self.tick.cur())
     }
 }
