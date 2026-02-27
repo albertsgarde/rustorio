@@ -92,14 +92,16 @@ impl<Ore: OreType> Territory<Ore> {
 
     fn tick(&mut self, tick: &Tick) {
         assert!(tick.cur() >= self.tick, "Tick went backwards");
+        let tick_delta = tick.cur() - self.tick;
         for miner_tick in &mut self.miners {
-            *miner_tick += tick.cur() - self.tick;
+            *miner_tick += tick_delta;
             self.resources += resource(
                 u32::try_from(*miner_tick / Ore::MINING_TIME)
                     .expect("Number of resources exceeds u32::MAX."),
             );
             *miner_tick %= Ore::MINING_TIME;
         }
+        self.tick = tick.cur();
     }
 
     /// Mines ore by hand, advancing the tick by [`OreType::MINING_TIME`] for each unit mined.
