@@ -13,16 +13,16 @@ use rustorio_engine::{
 use crate::resources::{Copper, CopperOre, Iron, IronOre};
 
 /// Sub-trait of `ResourceType` for ores that can be mined in a territory.
-pub trait Ore: ResourceType {
+pub trait OreType: ResourceType {
     /// How long it takes to mine one unit of ore.
     const MINING_TIME: u64;
 }
 
-impl Ore for IronOre {
+impl OreType for IronOre {
     const MINING_TIME: u64 = 2;
 }
 
-impl Ore for CopperOre {
+impl OreType for CopperOre {
     const MINING_TIME: u64 = 2;
 }
 
@@ -61,15 +61,15 @@ impl Display for TerritoryFullError {
 /// A territory that can hold miners to mine a specific type of ore.
 #[derive(Debug)]
 #[non_exhaustive]
-pub struct Territory<OreType: ResourceType> {
+pub struct Territory<Ore: ResourceType> {
     tick: u64,
     /// The maximum number of miners allowed in the territory.
     max_miners: u32,
     miners: Vec<u64>,
-    resources: Resource<OreType>,
+    resources: Resource<Ore>,
 }
 
-impl<OreType: Ore> Territory<OreType> {
+impl<Ore: OreType> Territory<Ore> {
     /// Creates a new territory that can hold up to `max_miners` miners.
     pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
         Self {
@@ -95,17 +95,17 @@ impl<OreType: Ore> Territory<OreType> {
         for miner_tick in &mut self.miners {
             *miner_tick += tick.cur() - self.tick;
             self.resources += resource(
-                u32::try_from(*miner_tick / OreType::MINING_TIME)
+                u32::try_from(*miner_tick / Ore::MINING_TIME)
                     .expect("Number of resources exceeds u32::MAX."),
             );
-            *miner_tick %= OreType::MINING_TIME;
+            *miner_tick %= Ore::MINING_TIME;
         }
     }
 
-    /// Mines ore by hand, advancing the tick by [`Ore::MINING_TIME`] for each unit mined.
-    pub fn hand_mine<const AMOUNT: u32>(&mut self, tick: &mut Tick) -> Bundle<OreType, AMOUNT> {
+    /// Mines ore by hand, advancing the tick by [`OreType::MINING_TIME`] for each unit mined.
+    pub fn hand_mine<const AMOUNT: u32>(&mut self, tick: &mut Tick) -> Bundle<Ore, AMOUNT> {
         self.tick(tick);
-        tick.advance_by((u64::from(AMOUNT)) * OreType::MINING_TIME);
+        tick.advance_by((u64::from(AMOUNT)) * Ore::MINING_TIME);
         bundle()
     }
 
@@ -146,7 +146,7 @@ impl<OreType: Ore> Territory<OreType> {
     }
 
     /// Access the resources mined in this territory.
-    pub fn resources(&mut self, tick: &Tick) -> &mut Resource<OreType> {
+    pub fn resources(&mut self, tick: &Tick) -> &mut Resource<Ore> {
         self.tick(tick);
         &mut self.resources
     }
