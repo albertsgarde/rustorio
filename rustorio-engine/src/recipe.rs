@@ -4,7 +4,7 @@ pub use rustorio_derive::{Recipe, recipe_doc};
 
 use crate::{
     ResourceType, Sealed,
-    resources::{Bundle, Resource},
+    resources::{Bundle, Resource, TokenOfCreation, creation_token},
     tick::Tick,
 };
 
@@ -29,9 +29,12 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
 #[doc(hidden)]
 pub trait MultiBundleEx: MultiBundle {
     /// Factory function to create a new bundle tuple.
-    fn new_bundle() -> Self;
+    fn new_bundle(token: &TokenOfCreation) -> Self;
     /// Iterate over the resources, giving direct mutable access to the amounts.
-    fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)>;
+    fn iter<'a>(
+        token: &'a TokenOfCreation,
+        items: &'a mut Self::AsResources,
+    ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)>;
 }
 
 // Special untupled case, for e.g. tech recipes that don't return a tuple.
@@ -52,11 +55,14 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     }
 }
 impl<R1: ResourceType, const N1: u32> MultiBundleEx for Bundle<R1, N1> {
-    fn new_bundle() -> Self {
-        <(Self,) as MultiBundleEx>::new_bundle().0
+    fn new_bundle(token: &TokenOfCreation) -> Self {
+        <(Self,) as MultiBundleEx>::new_bundle(token).0
     }
-    fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
-        <(Self,) as MultiBundleEx>::iter(items)
+    fn iter<'a>(
+        token: &'a TokenOfCreation,
+        items: &'a mut Self::AsResources,
+    ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
+        <(Self,) as MultiBundleEx>::iter(token, items)
     }
 }
 
@@ -127,20 +133,23 @@ macro_rules! impl_multi_bundle {
         > MultiBundleEx for ($(Bundle<$ty, $amount>,)*)
         {
             #[allow(clippy::unused_unit)]
-            fn new_bundle() -> Self {
+            fn new_bundle(token: &TokenOfCreation) -> Self {
                 (
                     $(
-                        replace_expr!($ty, crate::resources::bundle()),
+                        replace_expr!($ty, crate::resources::bundle(token)),
                     )*
                 )
             }
-            fn iter(items: &mut Self::AsResources) -> impl Iterator<Item = (&'static str, u32, &mut u32)> {
+            fn iter<'a>(
+                token: &'a TokenOfCreation,
+                items: &'a mut Self::AsResources,
+            ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
                 [
                     $(
                         (
                             <$ty as ResourceType>::NAME,
                             Self::AMOUNTS.$n,
-                            crate::resources::resource_amount_mut(&mut items.$n),
+                            crate::resources::resource_amount_mut(token, &mut items.$n),
                         ),
                     )*
                 ]
@@ -212,6 +221,6 @@ pub trait HandRecipe: std::fmt::Debug + Sealed + RecipeEx {
     fn craft(tick: &mut Tick, inputs: Self::InputBundle) -> Self::OutputBundle {
         let _ = inputs;
         tick.advance_by(Self::TIME);
-        Self::OutputBundle::new_bundle()
+        Self::OutputBundle::new_bundle(creation_token())
     }
 }

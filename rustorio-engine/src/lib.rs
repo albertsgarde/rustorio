@@ -17,6 +17,7 @@ pub mod tick;
 
 use std::{io::Write, net::TcpStream, sync::Once};
 
+use resources::creation_token;
 use rustorio_common::cli::{PORT_ENV_NAME, PlayOutput};
 
 pub use crate::resources::{ResourceType, bundle, resource};
@@ -37,7 +38,7 @@ pub fn play<G: GameMode>(main: fn(Tick, G::StartingResources) -> (Tick, G::Victo
         );
     }
     let tick = Tick::start(G::DEFAULT_MAX_TICK);
-    let start_resources = G::StartingResources::init(&tick);
+    let start_resources = G::StartingResources::init(creation_token(), &tick);
     let (tick, _points) = main(tick, start_resources);
     if let Ok(port) = std::env::var(PORT_ENV_NAME) {
         let port = port.parse().unwrap_or_else(|error| panic!("Failed to pass env variable '{PORT_ENV_NAME}' as port. Env var value: '{port}'  Error: {error:?}"));

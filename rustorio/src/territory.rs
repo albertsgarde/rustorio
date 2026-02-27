@@ -8,6 +8,7 @@ use rustorio_engine::{
     ResourceType, bundle,
     mod_reexports::{Bundle, Resource, Tick},
     resource,
+    resources::{TokenOfCreation, creation_token},
     tick::TickSnapshot,
 };
 
@@ -72,7 +73,7 @@ pub struct Territory<Ore: ResourceType> {
 
 impl<Ore: OreType> Territory<Ore> {
     /// Creates a new territory that can hold up to `max_miners` miners.
-    pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
+    pub(crate) const fn new(_token: &TokenOfCreation, tick: &Tick, max_miners: u32) -> Self {
         Self {
             tick: tick.snapshot(),
             max_miners,
@@ -92,10 +93,12 @@ impl<Ore: OreType> Territory<Ore> {
     }
 
     fn tick(&mut self, tick: &Tick) {
+        let token = creation_token();
         let time_elapsed = self.tick.advance_to(tick).unwrap();
         for miner_tick in &mut self.miners {
             *miner_tick += time_elapsed;
             self.resources += resource(
+                token,
                 u32::try_from(*miner_tick / Ore::MINING_TIME)
                     .expect("Number of resources exceeds u32::MAX."),
             );
@@ -105,9 +108,10 @@ impl<Ore: OreType> Territory<Ore> {
 
     /// Mines ore by hand, advancing the tick by [`OreType::MINING_TIME`] for each unit mined.
     pub fn hand_mine<const AMOUNT: u32>(&mut self, tick: &mut Tick) -> Bundle<Ore, AMOUNT> {
+        let token = creation_token();
         self.tick(tick);
         tick.advance_by((u64::from(AMOUNT)) * Ore::MINING_TIME);
-        bundle()
+        bundle(token)
     }
 
     /// Adds a miner to the territory.
