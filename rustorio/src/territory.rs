@@ -8,6 +8,7 @@ use rustorio_engine::{
     ResourceType, bundle,
     mod_reexports::{Bundle, Resource, Tick},
     resource,
+    tick::TickSnapshot,
 };
 
 use crate::resources::{Copper, CopperOre, Iron, IronOre};
@@ -62,7 +63,7 @@ impl Display for TerritoryFullError {
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct Territory<Ore: ResourceType> {
-    tick: u64,
+    tick: TickSnapshot,
     /// The maximum number of miners allowed in the territory.
     max_miners: u32,
     miners: Vec<u64>,
@@ -73,7 +74,7 @@ impl<Ore: OreType> Territory<Ore> {
     /// Creates a new territory that can hold up to `max_miners` miners.
     pub(crate) const fn new(tick: &Tick, max_miners: u32) -> Self {
         Self {
-            tick: tick.cur(),
+            tick: tick.snapshot(),
             max_miners,
             miners: Vec::new(),
             resources: Resource::new_empty(),
@@ -91,17 +92,15 @@ impl<Ore: OreType> Territory<Ore> {
     }
 
     fn tick(&mut self, tick: &Tick) {
-        assert!(tick.cur() >= self.tick, "Tick went backwards");
-        let tick_delta = tick.cur() - self.tick;
+        let time_elapsed = self.tick.advance_to(tick.snapshot()).unwrap();
         for miner_tick in &mut self.miners {
-            *miner_tick += tick_delta;
+            *miner_tick += time_elapsed;
             self.resources += resource(
                 u32::try_from(*miner_tick / Ore::MINING_TIME)
                     .expect("Number of resources exceeds u32::MAX."),
             );
             *miner_tick %= Ore::MINING_TIME;
         }
-        self.tick = tick.cur();
     }
 
     /// Mines ore by hand, advancing the tick by [`OreType::MINING_TIME`] for each unit mined.

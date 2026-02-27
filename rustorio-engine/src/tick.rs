@@ -1,4 +1,38 @@
+//! Ticks keep track of time elapsed in the game.
 use std::fmt::Display;
+
+/// A record of a point in time.
+#[derive(Debug, Clone, Copy)]
+pub struct TickSnapshot {
+    /// The tick number.
+    tick: u64,
+}
+
+/// Error returned when trying to move a tick snapshot backwards in time.
+pub struct BackwardTickingError;
+
+impl std::fmt::Debug for BackwardTickingError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Tried to move a tick snapshot backwards in time",)
+    }
+}
+
+impl TickSnapshot {
+    /// Returns the current tick number.
+    pub const fn cur(&self) -> u64 {
+        self.tick
+    }
+
+    /// Advance the snapshot to the target snapshot, returning the number of ticks elapsed.
+    pub const fn advance_to(&mut self, until: TickSnapshot) -> Result<u64, BackwardTickingError> {
+        if let Some(diff) = until.tick.checked_sub(self.tick) {
+            self.tick = until.tick;
+            Ok(diff)
+        } else {
+            Err(BackwardTickingError)
+        }
+    }
+}
 
 /// The tick is used to keep track of time in the game.
 /// You can advance the game using the [`advance`](Tick::advance) method or similar.
@@ -106,6 +140,11 @@ impl Tick {
     /// Returns the current tick number.
     pub const fn cur(&self) -> u64 {
         self.tick
+    }
+
+    /// Record a snapshot of a past tick.
+    pub const fn snapshot(&self) -> TickSnapshot {
+        TickSnapshot { tick: self.cur() }
     }
 }
 

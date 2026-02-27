@@ -10,7 +10,7 @@
 
 use crate::{
     recipe::{MultiBundleEx, Recipe, RecipeEx},
-    tick::Tick,
+    tick::{Tick, TickSnapshot},
 };
 
 /// Location of a resource buffer in a machine.
@@ -65,12 +65,12 @@ impl<R: Recipe> std::fmt::Display for MachineNotEmptyError<R> {
 pub struct Machine<R: Recipe> {
     inputs: R::InputResources,
     outputs: R::OutputResources,
-    tick: u64,
+    tick: TickSnapshot,
     crafting_time: u64,
 }
 
 impl<R: RecipeEx> Machine<R> {
-    fn new_inner(tick: u64) -> Self {
+    fn new_inner(tick: TickSnapshot) -> Self {
         Self {
             inputs: Default::default(),
             outputs: Default::default(),
@@ -81,7 +81,7 @@ impl<R: RecipeEx> Machine<R> {
 
     /// Build a new machine.
     pub fn new(tick: &Tick) -> Self {
-        Self::new_inner(tick.cur())
+        Self::new_inner(tick.snapshot())
     }
 
     /// Update internal state and access input buffers.
@@ -136,9 +136,9 @@ impl<R: RecipeEx> Machine<R> {
     }
 
     fn tick(&mut self, tick: &Tick) {
-        assert!(tick.cur() >= self.tick, "Tick must be non-decreasing");
+        let time_elapsed = self.tick.advance_to(tick.snapshot()).unwrap();
 
-        self.crafting_time += tick.cur() - self.tick;
+        self.crafting_time += time_elapsed;
         let crafting_time = self.crafting_time;
         let count = self
             .iter_inputs()
@@ -161,7 +161,5 @@ impl<R: RecipeEx> Machine<R> {
         {
             self.crafting_time = 0;
         }
-
-        self.tick = tick.cur();
     }
 }
