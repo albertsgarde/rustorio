@@ -92,7 +92,7 @@ impl<Ore: OreType> Territory<Ore> {
     }
 
     fn tick(&mut self, tick: &Tick) {
-        let time_elapsed = self.tick.advance_to(tick.snapshot()).unwrap();
+        let time_elapsed = self.tick.advance_to(tick).unwrap();
         for miner_tick in &mut self.miners {
             *miner_tick += time_elapsed;
             self.resources += resource(

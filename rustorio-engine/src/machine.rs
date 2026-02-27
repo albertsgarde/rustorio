@@ -136,7 +136,7 @@ impl<R: RecipeEx> Machine<R> {
     }
 
     fn tick(&mut self, tick: &Tick) {
-        let time_elapsed = self.tick.advance_to(tick.snapshot()).unwrap();
+        let time_elapsed = self.tick.advance_to(tick).unwrap();
 
         self.crafting_time += time_elapsed;
         let crafting_time = self.crafting_time;

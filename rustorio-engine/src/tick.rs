@@ -38,7 +38,11 @@ impl TickSnapshot {
     }
 
     /// Advance the snapshot to the target snapshot, returning the number of ticks elapsed.
-    pub const fn advance_to(&mut self, until: TickSnapshot) -> Result<u64, BackwardTickingError> {
+    pub fn advance_to(
+        &mut self,
+        until: impl Into<TickSnapshot>,
+    ) -> Result<u64, BackwardTickingError> {
+        let until = until.into();
         if let Some(diff) = until.tick.checked_sub(self.tick) {
             self.tick = until.tick;
             Ok(diff)
@@ -169,6 +173,12 @@ impl Tick {
 impl From<&Tick> for u64 {
     fn from(tick: &Tick) -> Self {
         tick.tick.cur()
+    }
+}
+
+impl From<&Tick> for TickSnapshot {
+    fn from(tick: &Tick) -> Self {
+        tick.snapshot()
     }
 }
 
