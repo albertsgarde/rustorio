@@ -15,7 +15,8 @@ impl ToTokens for Crate {
         let found_crate =
             proc_macro_crate::crate_name("rustorio-engine").expect("Failed to get crate name");
         match found_crate {
-            FoundCrate::Itself => quote! {crate}.to_tokens(tokens),
+            // Emit the crate name for doctests.
+            FoundCrate::Itself => quote! {rustorio_engine}.to_tokens(tokens),
             FoundCrate::Name(name) => {
                 let crate_ident = Ident::new(&name, Span::call_site());
                 quote! {::#crate_ident}.to_tokens(tokens);

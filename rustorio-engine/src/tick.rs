@@ -61,7 +61,7 @@ impl TickSnapshot {
 /// # Examples
 ///
 /// Let's say we have two furnaces the we want to fill with `iron_ore` and `copper_ore` respectively, and then advance time so they can smelt the ore into ingots:
-/// ```
+/// ```ignore
 /// // Add ore to the furnaces at the current tick
 /// furnace1.inputs(&tick).0 += iron_ore;
 /// furnace2.inputs(&tick).0 += copper_ore;
