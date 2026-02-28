@@ -50,28 +50,34 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
 
 // Special untupled case, for e.g. tech recipes that don't return a tuple.
 impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
-    type AsResources = (Resource<R1>,);
+    type AsResources = Resource<R1>;
 
     type AmountsType = (u32,);
     const AMOUNTS: Self::AmountsType = (N1,);
 
     fn add(res: &mut Self::AsResources, bundle: Self) {
-        <(Self,) as MultiBundle>::add(res, (bundle,))
+        *res += bundle;
     }
     fn bundle(res: &mut Self::AsResources) -> Option<Self> {
-        <(Self,) as MultiBundle>::bundle(res).map(|(r,)| r)
+        if Self::bundle_count(res) >= 1 {
+            Some(res.bundle().ok()?)
+        } else {
+            None
+        }
     }
     fn new_bundle(token: &TokenOfCreation) -> Self {
-        <(Self,) as MultiBundle>::new_bundle(token).0
+        crate::resources::bundle(token)
     }
     fn iter(items: &Self::AsResources) -> impl Iterator<Item = (&'static str, u32, u32)> {
-        <(Self,) as MultiBundle>::iter(items)
+        [(<R1 as ResourceType>::NAME, N1, items.amount())].into_iter()
     }
     fn iter_mut<'a>(
         token: &'a TokenOfCreation,
         items: &'a mut Self::AsResources,
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
-        <(Self,) as MultiBundle>::iter_mut(token, items)
+        let token: &'a TokenOfCreation = token;
+        let items: &'a mut Self::AsResources = items;
+        [(<R1 as ResourceType>::NAME, N1, items.amount_mut(token))].into_iter()
     }
 }
 

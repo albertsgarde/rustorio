@@ -164,7 +164,7 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
 
     let mut research_points: Resource<ResearchPoint<SteelTechnology>> = Resource::new_empty();
     while research_points.amount() < SteelTechnology::REQUIRED_RESEARCH_POINTS {
-        research_points += lab.outputs(&tick).0.empty();
+        research_points += lab.outputs(&tick).empty();
         lab.inputs(&tick).0 += red_science_assembler.outputs(&tick).0.empty();
 
         let iron = iron_furnace
@@ -193,7 +193,7 @@ fn user_main(mut tick: Tick, starting_resources: StartingResources) -> (Tick, Bu
 
     let mut research_points: Resource<ResearchPoint<PointsTechnology>> = Resource::new_empty();
     while research_points.amount() < PointsTechnology::REQUIRED_RESEARCH_POINTS {
-        research_points += lab.outputs(&tick).0.empty();
+        research_points += lab.outputs(&tick).empty();
         lab.inputs(&tick).0 += red_science_assembler.outputs(&tick).0.empty();
 
         let iron = iron_furnace
