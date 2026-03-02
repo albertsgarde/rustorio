@@ -48,6 +48,14 @@ pub trait MultiBundle: Sized + std::fmt::Debug {
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)>;
 }
 
+/// Multiply the amounts in a bundle tuple by the given constant.
+pub trait MultiBundleMultiply<const N: u32>: MultiBundle {
+    /// Bundle tuple identical to `Self` except with all amounts multiplied by `N`.
+    type Multiplied: MultiBundle;
+}
+/// Transform a tuple of bundles by multiplying all bundle quantities by `N`.
+pub type MultiplyMultiBundle<MB, const N: u32> = <MB as MultiBundleMultiply<N>>::Multiplied;
+
 // Special untupled case, for e.g. tech recipes that don't return a tuple.
 impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     type AsResources = (Resource<R1>,);
@@ -73,6 +81,14 @@ impl<R1: ResourceType, const N1: u32> MultiBundle for Bundle<R1, N1> {
     ) -> impl Iterator<Item = (&'static str, u32, &'a mut u32)> {
         <(Self,) as MultiBundle>::iter_mut(token, items)
     }
+}
+
+impl<const N: u32, R1: ResourceType, const N1: u32> MultiBundleMultiply<N> for Bundle<R1, N1>
+where
+    // See https://github.com/rust-lang/rust/issues/145069 for why `Copy`
+    [(); { N1 * N } as usize]: Copy,
+{
+    type Multiplied = Bundle<R1, { N1 * N }>;
 }
 
 macro_rules! replace_expr {
@@ -162,6 +178,19 @@ macro_rules! impl_multi_bundle {
                 .into_iter()
             }
         }
+
+        impl<
+            const N: u32,
+            $($ty: ResourceType, const $amount: u32),*
+        > MultiBundleMultiply<N> for ($(Bundle<$ty, $amount>,)*)
+        where
+            // See https://github.com/rust-lang/rust/issues/145069 for why `Copy`
+            $(
+                [(); { $amount * N } as usize]: Copy,
+            )*
+        {
+            type Multiplied = ($(Bundle<$ty, { $amount * N }>,)*);
+        }
     };
 }
 
@@ -225,4 +254,55 @@ pub trait HandRecipe: std::fmt::Debug + Sealed + Recipe {
         tick.advance_by(Self::TIME);
         Self::OutputBundle::new_bundle(creation_token())
     }
+
+    /// Crafts the recipe `N` times by consuming `N` input bundles and producing `N` output bundles.
+    /// Advances the provided `Tick` by `N` times the recipe's time.
+    ///
+    /// Note: Call this function using an explicit `N`: `MyRecipe::craft_n::<42>(..)`; `N` can't be
+    /// inferred and omitting it may give rise to confusing errors.
+    fn craft_n<const N: u32>(
+        tick: &mut Tick,
+        inputs: MultiplyMultiBundle<Self::InputBundle, N>,
+    ) -> MultiplyMultiBundle<Self::OutputBundle, N>
+    where
+        Self::InputBundle: MultiBundleMultiply<N>,
+        Self::OutputBundle: MultiBundleMultiply<N, Multiplied: MultiBundle>,
+    {
+        let token = creation_token();
+        let _ = inputs;
+        tick.advance_by(Self::TIME * N as u64);
+        <<Self::OutputBundle as MultiBundleMultiply<N>>::Multiplied as MultiBundle>::new_bundle(
+            token,
+        )
+    }
+}
+
+#[test]
+fn test_handcrafting() {
+    use rustorio_derive::Recipe;
+
+    use crate as rustorio_engine; // For the derive macros
+
+    crate::resource_type!(Copper);
+    crate::resource_type!(CopperWire);
+
+    #[derive(Debug, Clone, Copy, Recipe)]
+    #[recipe_doc]
+    #[recipe_inputs(
+        (1, Copper),
+    )]
+    #[recipe_outputs(
+        (2, CopperWire),
+    )]
+    #[recipe_ticks(1)]
+    pub struct CopperWireRecipe;
+    impl Sealed for CopperWireRecipe {}
+    impl HandRecipe for CopperWireRecipe {}
+
+    let mut tick = Tick::start(10000);
+    let mut copper: Resource<Copper> = crate::resource(creation_token(), 42);
+    let _: (Bundle<CopperWire, 2>,) =
+        CopperWireRecipe::craft(&mut tick, (copper.bundle().unwrap(),));
+    let _: (Bundle<CopperWire, 10>,) =
+        CopperWireRecipe::craft_n::<5>(&mut tick, (copper.bundle().unwrap(),));
 }
