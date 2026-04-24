@@ -46,3 +46,17 @@ run-docker:
 
 install-local *ARGS:
     cargo install --path rustorio {{ARGS}} --force
+
+# Set up the AI player project (run once, or to reset)
+[working-directory: "ai-player"]
+ai-player-setup:
+    touch rustorio && rm -r rustorio
+    rustorio setup
+    cd rustorio && cargo remove rustorio
+    cd rustorio && cargo add --path ../../rustorio
+    cd rustorio && cargo build
+    cd rustorio && cargo doc -p rustorio --no-deps
+
+[working-directory: "ai-player/rustorio"]
+ai-test:
+    claude --setting-sources project --strict-mcp-config --settings ../.claude/settings.json --append-system-prompt-file ../CLAUDE.md --permission-mode dontAsk "Begin!"

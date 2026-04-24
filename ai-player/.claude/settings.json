@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "claude-haiku-4-5-20251001",
+  "env": {
+    "ENABLE_LSP_TOOL": "1"
+  },
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true
+  },
+  "disableAllHooks": true,
+  "autoMemoryEnabled": false,
+  "claudeMdExcludes": ["*"],
+  "permissions": {
+    "allow": [
+      "Read(./src/)",
+      "Read(./target/doc/rustorio/)",
+      "Edit(./src/bin/tutorial/**)",
+      "Bash(rustorio play tutorial)",
+      "Bash(rustorio play tutorial 2>&1)"
+    ],
+    "deny": [
+      "Edit(Cargo.toml)",
+      "Edit(target/)"
+    ]
+  }
+}
