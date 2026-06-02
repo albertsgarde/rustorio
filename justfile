@@ -52,11 +52,34 @@ install-local *ARGS:
 ai-player-setup:
     touch rustorio && rm -r rustorio
     rustorio setup
+    mkdir -p logs
     cd rustorio && cargo remove rustorio
     cd rustorio && cargo add --path ../../rustorio
     cd rustorio && cargo build
     cd rustorio && cargo doc -p rustorio --no-deps
 
+# Run the AI player on the tutorial game mode.
+#
+# Sandboxing: the AI is restricted to a narrow set of allowed tools (see
+# ai-player/.claude/settings.json). Specifically it may only:
+#   - Read ./src/ and ./target/doc/rustorio/
+#   - Edit ./src/bin/tutorial/ (its solution file)
+#   - Run `rustorio play tutorial` (to test its solution)
+# It cannot edit Cargo.toml, touch the build output, use any MCP tools beyond
+# rust-analyzer-lsp, or access the user's global Claude config/settings.
+#
+# Note: --permission-mode dontAsk means denied actions are silently blocked
+# rather than prompting. The allow/deny lists in settings.json are the actual
+# enforcement — dontAsk just prevents interactive overrides during the run.
+# There is no OS-level sandbox (no seccomp/container); the above is purely
+# Claude Code's own permission layer.
 [working-directory: "ai-player/rustorio"]
 ai-test:
-    claude --setting-sources project --strict-mcp-config --settings ../.claude/settings.json --append-system-prompt-file ../CLAUDE.md --permission-mode dontAsk "Begin!"
+    claude \
+        --setting-sources project \
+        --strict-mcp-config \
+        --settings ../.claude/settings.json \
+        --append-system-prompt-file ../CLAUDE.md \
+        --permission-mode dontAsk \
+        "Begin!" \
+        2>&1 | tee "../logs/playtest-`date +%Y%m%d-%H%M%S`.log"
