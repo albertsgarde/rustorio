@@ -2,7 +2,27 @@
 //! Resources are held in either [`Resource`] or [`Bundle`] objects.
 //! [`Bundle`] objects are used to hold a fixed amount of a resource, while [`Resource`] objects can hold any amount.
 //!
-//! This module the core definitions for resources, including the `ResourceType` trait, the `Resource` and `Bundle` structs, and the macro to define new resources.
+//! This is the core engine module for resource primitives. Most players should use the
+//! player-facing resource docs in the `rustorio` crate instead. This module is mainly
+//! useful for engine development and mods that need to define new resource types or build
+//! APIs around resources.
+//!
+//! Engine and mod code can create resources with a [`TokenOfCreation`]:
+//!
+//! ```rust
+//! #use rustorio_engine::{ResourceType, resource_type};
+//! #use rustorio_engine::mod_reexports::{Bundle, Resource};
+//!
+//! resource_type!(Iron);
+//!
+//! let creation_token = rustorio_engine::resources::creation_token()
+//!
+//! let mut iron = Resource::<Iron>::new_empty();
+//! iron += rustorio_engine::bundle::<Iron, 15>(creation_token);
+//! ```
+//!
+//! This module defines the core resource APIs, including the [`ResourceType`] trait,
+//! the [`Resource`] and [`Bundle`] structs, and the [`resource_type`] macro.
 
 use std::{
     fmt::{Debug, Display},

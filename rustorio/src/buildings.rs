@@ -3,6 +3,8 @@
 //! To use a building, you must first build it which takes a number of resources.
 //! Then you can add inputs to it using `inputs`.
 //! Once it has sufficient inputs, it will start producing outputs, which can be extracted using `outputs`.
+//! Input and output buffers are tuples of [`Resource`](crate::Resource) values in the same order as the recipe docs.
+//! For example, a recipe with iron and copper-wire inputs exposes those buffers as `.0` and `.1`.
 //!
 //! When created, a building is set to a specific [`Recipe`](crate::recipes), which defines the inputs and outputs.
 //! This can be changed using the `change_recipe` method, but only if the building is empty (no inputs or outputs).
@@ -85,6 +87,29 @@ impl<R: AssemblerRecipe> Assembler<R> {
 /// The furnace will automatically process the inputs over time, which can be advanced using the [`Tick`].
 /// Outputs can be extracted using [`outputs`](Furnace::outputs), for example `furnace.outputs(&tick).0.bundle::<1>()`.
 /// If you want to change the recipe, use [`change_recipe`](Furnace::change_recipe), but ensure the furnace is empty first.
+///
+/// # Example
+///
+/// ```rust
+/// # use rustorio::{
+/// #     Bundle, Tick,
+/// #     buildings::Furnace,
+/// #     recipes::CopperSmelting,
+/// #     resources::{Copper, CopperOre, Iron},
+/// # };
+/// # fn example(mut tick: Tick) -> Bundle<Copper, 4> {
+/// # let token = rustorio_engine::resources::creation_token();
+/// # let iron = rustorio_engine::bundle::<Iron, 10>(token);
+/// # let copper_ore = rustorio_engine::bundle::<CopperOre, 8>(token);
+/// let mut furnace = Furnace::build(&tick, CopperSmelting, iron);
+///
+/// furnace.inputs(&tick).0 += copper_ore;
+/// tick.advance_until(|tick| furnace.outputs(tick).0 >= 4);
+///
+/// let copper = furnace.outputs(&tick).0.bundle::<4>().unwrap();
+/// # copper
+/// # }
+/// ```
 ///
 /// See the [implementors](FurnaceRecipe#implementors) of the [`FurnaceRecipe`] trait for recipes that can be used in the furnace.
 #[derive(Debug)]
