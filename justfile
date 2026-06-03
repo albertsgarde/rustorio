@@ -83,3 +83,30 @@ ai-test:
         --permission-mode dontAsk \
         "Begin!" \
         2>&1 | tee "../logs/playtest-`date +%Y%m%d-%H%M%S`.log"
+
+[working-directory: "ai-player"]
+ai-test2 GAMEMODE:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    AI_ROOT="$(pwd)"
+    DIR_NAME="{{GAMEMODE}}-$(date +%Y%m%d-%H%M%S)"
+    mkdir $DIR_NAME
+    rustorio setup $DIR_NAME --omit-tutorial --crate-name $DIR_NAME
+    cd $DIR_NAME/rustorio
+    rustorio new-game --game-mode {{GAMEMODE}} {{GAMEMODE}}
+    echo "default_save_game = \"{{GAMEMODE}}\"" >> rustorio.toml
+    cargo remove rustorio 
+    cargo add --path $AI_ROOT/../rustorio          # Use local version of rustorio
+    cargo build
+    cargo doc -p rustorio --no-deps             # Generate docs for AI reference
+    claude \
+        --setting-sources project \
+        --strict-mcp-config \
+        --settings $AI_ROOT/.claude/settings.json \
+        --append-system-prompt-file $AI_ROOT/CLAUDE.md \
+        --permission-mode dontAsk \
+        "Begin!" \
+        2>&1 | tee ../ai.log
+
+ai-test3 GAMEMODE:
+    cargo run --bin rustorio dev ai-test -- {{GAMEMODE}}

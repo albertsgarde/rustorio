@@ -19,6 +19,7 @@ reqwest.workspace = true
 thiserror.workspace = true
 serde.workspace = true
 toml.workspace = true
+chrono.workspace = true
 
 [lints]
 workspace = true

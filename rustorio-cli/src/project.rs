@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 pub struct Config {
     pub username: Option<Username>,
     pub rustorio_url: String,
+    pub default_save_game: Option<String>,
 }
 
 impl Config {
@@ -51,6 +52,7 @@ impl Default for Config {
         Self {
             username: None,
             rustorio_url: "https://rustor.io".to_string(),
+            default_save_game: None,
         }
     }
 }
@@ -62,7 +64,11 @@ pub struct ProjectInfo {
 
 impl ProjectInfo {
     pub fn get() -> Result<Option<Self>> {
-        let mut current_dir = Path::new(".")
+        Self::get_at(Path::new("."))
+    }
+
+    pub fn get_at(path: &Path) -> Result<Option<Self>> {
+        let mut current_dir = path
             .canonicalize()
             .context("Failed to canonicalize current directory")?;
         let root_path = loop {

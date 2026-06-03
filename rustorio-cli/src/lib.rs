@@ -1,3 +1,4 @@
+mod dev;
 mod project;
 mod submit;
 
@@ -15,6 +16,7 @@ use dialoguer::Confirm;
 use thiserror::Error;
 
 use crate::{
+    dev::DevCommands,
     project::{Config, ProjectInfo},
     submit::SubmitArgs,
 };
@@ -82,6 +84,7 @@ impl Cli {
             Commands::Play(args) => args.run(),
             Commands::Submit(args) => args.run(),
             Commands::Doc(args) => args.run(),
+            Commands::Dev(args) => args.run(),
         }
     }
 }
@@ -104,6 +107,9 @@ enum Commands {
     /// Opens the Rustorio documentation in the default web browser.
     /// Can only be run in a Rustorio project.
     Doc(DocArgs),
+    /// Developer commands. Must be run from somewhere inside the rustorio repo.
+    #[clap(subcommand)]
+    Dev(DevCommands),
 }
 
 #[derive(Args)]
@@ -112,11 +118,22 @@ pub struct SetupArgs {
     #[clap(default_value = ".")]
     path: PathBuf,
     /// Whether to create a tutorial save game with the new Rustorio project. Defaults to true.
-    #[clap(long, default_value_t = true)]
-    include_tutorial: bool,
+    #[clap(long, default_value_t = false)]
+    omit_tutorial: bool,
+    /// The name of the crate to create. Defaults to "rustorio-game".
+    #[clap(long, default_value = "rustorio-game")]
+    crate_name: String,
 }
 
 impl SetupArgs {
+    pub const fn new(path: PathBuf, omit_tutorial: bool, crate_name: String) -> Self {
+        Self {
+            path,
+            omit_tutorial,
+            crate_name,
+        }
+    }
+
     fn run(&self) -> Result<ProjectInfo> {
         if !self.path.exists() {
             bail!(
@@ -143,7 +160,7 @@ impl SetupArgs {
             .arg("new")
             .arg("--bin")
             .arg("--name")
-            .arg("rustorio-game")
+            .arg(&self.crate_name)
             .arg("rustorio")
             .current_dir(&canonical_path)
             .run()
@@ -164,7 +181,7 @@ impl SetupArgs {
             .context("Failed to create rust-toolchain file")?;
         let save_path = path.join("src").join("bin");
         fs::create_dir_all(&save_path).context("Failed to create save directory")?;
-        if self.include_tutorial {
+        if !self.omit_tutorial {
             let tutorial_start_file = GameMode::Tutorial.start_file();
             let tutorial_save_dir = save_path.join("tutorial");
             fs::create_dir_all(&tutorial_save_dir)
@@ -218,11 +235,14 @@ pub struct NewGameArgs {
     /// The game mode for the new save game.
     #[clap(long, short, value_enum, default_value_t = GameMode::Standard)]
     game_mode: GameMode,
+    /// Directory to search for the Rustorio project root. Defaults to the current directory.
+    #[clap(long, default_value = ".")]
+    directory: PathBuf,
 }
 
 impl NewGameArgs {
     pub fn run(&self) -> Result<()> {
-        let project_info = match ProjectInfo::get()
+        let project_info = match ProjectInfo::get_at(&self.directory)
             .context("Failed while looking for Rustorio root.")?
         {
             Some(project_info) => project_info,
@@ -236,7 +256,8 @@ impl NewGameArgs {
                 if setup_rustorio {
                     let setup_args = SetupArgs {
                         path: PathBuf::from("./"),
-                        include_tutorial: false,
+                        omit_tutorial: true,
+                        crate_name: "rustorio-game".to_string(),
                     };
                     setup_args
                         .run()
@@ -283,14 +304,27 @@ impl NewGameArgs {
 #[derive(Args)]
 pub struct PlayArgs {
     /// The name of the save game to run.
-    save_name: String,
+    save_name: Option<String>,
 }
 
 impl PlayArgs {
     pub fn run(&self) -> Result<()> {
-        let project_info = ProjectInfo::get().context("Failed to get project project info")?
+        let project_info = ProjectInfo::get().context("Failed to get project info")?
                 .context("Can only run command in a Rustorio project. Please either navigate to a Rustorio project or run 'rustorio setup' first.")?;
-        project_info.play(&self.save_name).map(|_| ())
+        let save_name = if let Some(save_name) = self.save_name.as_ref() {
+            save_name.as_str()
+        } else if let Some(default_save_game) = project_info.config.default_save_game.as_ref() {
+            println!(
+                "No save game specified, using default save game '{}' from config.",
+                default_save_game
+            );
+            default_save_game.as_str()
+        } else {
+            bail!(
+                "No save game specified. Please specify a save game to play: rustorio play <save_name>"
+            );
+        };
+        project_info.play(save_name).map(|_| ())
     }
 }
 
@@ -299,7 +333,7 @@ pub struct DocArgs;
 
 impl DocArgs {
     pub fn run(&self) -> Result<()> {
-        let project_info = ProjectInfo::get().context("Failed to get project project info")?
+        let project_info = ProjectInfo::get().context("Failed to get project info")?
                 .context("Can only run command in a Rustorio project. Please either navigate to a Rustorio project or run 'rustorio setup' first.")?;
         Command::new("cargo")
             .arg("doc")

@@ -14,9 +14,9 @@
     "allow": [
       "Read(./src/)",
       "Read(./target/doc/rustorio/)",
-      "Edit(./src/bin/tutorial/**)",
-      "Bash(rustorio play tutorial)",
-      "Bash(rustorio play tutorial 2>&1)"
+      "Edit(./src/bin/*/**)",
+      "Bash(rustorio play)",
+      "Bash(rustorio play 2>&1)"
     ],
     "deny": [
       "Edit(Cargo.toml)",
