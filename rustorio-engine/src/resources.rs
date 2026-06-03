@@ -10,12 +10,12 @@
 //! Engine and mod code can create resources with a [`TokenOfCreation`]:
 //!
 //! ```rust
-//! #use rustorio_engine::{ResourceType, resource_type};
-//! #use rustorio_engine::mod_reexports::{Bundle, Resource};
+//! # use rustorio_engine::{ResourceType, resource_type};
+//! # use rustorio_engine::mod_reexports::{Bundle, Resource};
 //!
 //! resource_type!(Iron);
 //!
-//! let creation_token = rustorio_engine::resources::creation_token()
+//! let creation_token = rustorio_engine::resources::creation_token();
 //!
 //! let mut iron = Resource::<Iron>::new_empty();
 //! iron += rustorio_engine::bundle::<Iron, 15>(creation_token);
