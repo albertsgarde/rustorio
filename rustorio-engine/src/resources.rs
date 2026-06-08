@@ -52,8 +52,11 @@ pub trait ResourceType: Sealed + Debug {
 /// use rustorio_engine::resource_type;
 /// resource_type!(
 ///     /// Gold ingots used for advanced crafting.
-///     Gold);
+///     Gold
+/// );
 /// ```
+///
+/// See the `rustorio::resources` docs for a bunch of uses.
 #[macro_export]
 macro_rules! resource_type {
 
@@ -68,6 +71,8 @@ macro_rules! resource_type {
         }
     };
 }
+
+pub use resource_type;
 
 /// Error returned when there are insufficient resources in a [`Resource`] to fulfill a request.
 #[derive(Debug, Clone)]
