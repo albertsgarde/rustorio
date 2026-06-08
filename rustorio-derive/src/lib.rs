@@ -311,6 +311,11 @@ impl TechnologyDetails {
                 const POINT_RECIPE_TIME: u64 = #point_recipe_time;
                 const REQUIRED_RESEARCH_POINTS_EX: u32 = #research_point_cost;
                 type InputBundle = #input_bundle_type;
+
+                fn instance(token: &#Crate::resources::TokenOfCreation) -> Self {
+                    let _ = token;
+                    Self
+                }
             }
         }
     }

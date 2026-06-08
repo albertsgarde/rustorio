@@ -1,6 +1,8 @@
 //! Ticks keep track of time elapsed in the game.
 use std::fmt::Display;
 
+use crate::resources::TokenOfCreation;
+
 /// A record of a point in time.
 #[derive(Debug, Clone, Copy)]
 pub struct TickSnapshot {
@@ -153,6 +155,13 @@ impl Tick {
     pub const fn snapshot(&self) -> TickSnapshot {
         self.tick
     }
+}
+
+/// Creates a new [`Tick`] with the specified maximum tick.
+/// Should not be reexported in mods.
+pub const fn tick(token: &TokenOfCreation, max_tick: u64) -> Tick {
+    let _ = token;
+    Tick::start(max_tick)
 }
 
 impl From<&Tick> for u64 {

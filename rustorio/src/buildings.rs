@@ -159,6 +159,36 @@ impl<R: FurnaceRecipe> Furnace<R> {
 /// Performs research to unlock new technologies.
 /// Set it to produce research points for a specific technology either when [`build`](Lab::build)ing it,
 /// or using [`change_technology`](Lab::change_technology).
+///
+/// ```rust
+/// # use rustorio::{
+/// #     Bundle, Tick, Technology,
+/// #     buildings::Lab,
+/// #     research::{PointsTechnology, RedScience, SteelTechnology},
+/// #     resources::{Copper, Iron},
+/// # };
+/// # use rustorio_engine::{tick, resources, research::TechnologyEx};
+/// #
+/// # let token = resources::creation_token();
+/// # let iron: Bundle<Iron, 20> = rustorio_engine::bundle(token);
+/// # let copper: Bundle<Copper, 15> = rustorio_engine::bundle(token);
+/// # let red_science: Bundle<RedScience, 20> = rustorio_engine::bundle(token);
+/// # let mut tick = tick::tick(&token, 1_000_000);
+/// # let steel_technology = SteelTechnology::instance(&token);
+///
+/// let mut lab = Lab::build(&tick, &steel_technology, iron, copper);
+///
+/// lab.inputs(&tick).0 += red_science; // Add 20 red science to the lab's input buffer.
+/// tick.advance_until(|tick| {
+///     lab.outputs(tick).0 >= SteelTechnology::REQUIRED_RESEARCH_POINTS
+/// });
+///
+///
+/// let research_points = lab.outputs(&tick).0.bundle().expect("Given the above advance_until, the lab should contain enough research points");
+/// let (_steel_smelting, points_research) = steel_technology.research(research_points);
+///
+/// let lab = lab.change_technology(&points_research).expect("We added exactly the required amount of science packs to the lab, so it should be empty");
+/// ```
 #[derive(Debug)]
 pub struct Lab<T: Technology>(Machine<TechRecipe<T>>)
 where

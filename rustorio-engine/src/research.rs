@@ -10,7 +10,7 @@ pub use rustorio_derive::{TechnologyEx, technology_doc};
 use crate::{
     ResourceType, Sealed,
     recipe::{MultiBundle, Recipe},
-    resources::{Bundle, Resource},
+    resources::{Bundle, Resource, TokenOfCreation},
 };
 
 /// A technology can be unlocked out by calling the `research` method with the required science packs.
@@ -41,6 +41,8 @@ pub trait TechnologyEx {
     const POINT_RECIPE_TIME: u64;
     /// How many of this technology's research points (`ResearchPoint<T>`) are needed to complete the research.
     const REQUIRED_RESEARCH_POINTS_EX: u32;
+
+    fn instance(token: &TokenOfCreation) -> Self;
 }
 
 /// A resource type representing one research point for a specific `Technology`.
