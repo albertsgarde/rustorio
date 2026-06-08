@@ -23,6 +23,7 @@ Edit `src/bin/<game mode name>/main.rs`. This is the only file you should write 
 ## How to play
 
 The `README.md` file in this directory is copied from the Rustorio github. Follow the instructions there and use the API docs as reference.
+You will _not_ be allowed to look at the source code of the game, since the game should be possible to win without that.
 
 ## Testing
 
@@ -30,7 +31,7 @@ Do not use `cargo` commands directly. Use `rustorio play` or `rustorio play 2>&1
 
 ## Issues
 
-If you feel like you need to use a command or access a file that is denied to you, please tell me and I'll consider adding it to your permissions. If you find a bug in the game or the API, please report it.
+If you feel like you need to use a command or access a file that is denied to you, please tell me and I'll consider adding it to your permissions. However, I will not give you access to the source code. If you find a bug in the game or the API, please report it. If there is some information you feel is missing or is unclear in the documentation, please report where you looked, and if possible, what made it confusing.
 
 ## Done
 
