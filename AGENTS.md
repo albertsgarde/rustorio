@@ -19,3 +19,7 @@ The `rustorio` crate contains all the user facing code and APIs, while `rustorio
 All parts of `rustorio-engine` that a user should interact with are re-exported in `rustorio`.
 Keep this in mind when writing documentation, since the audience will differ between the two crates.
 If it is in `rustorio-engine` and is not exported in `rustorio`, its documentation should be targeted at developers and modders, not players.
+
+# Documentation
+Examples in documentation should be valid doc-tests, but should hide any code that is not relevant to the example itself, e.g. most `use` statements.
+I recommend using the `TokenOfCreation` to create the required resources in a hidden part of the example and then use them in the visible part.
