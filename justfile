@@ -4,6 +4,7 @@ fmt:
 # If you don't have nextest installed, you can get it via `cargo install cargo-nextest`
 test *ARGS:
     cargo nextest r {{ARGS}}
+    cargo test --doc
 
 alias t := test
 
@@ -12,7 +13,6 @@ check STRICT="":
     {{ if STRICT != "" { "RUSTFLAGS=\"-Dwarnings\" RUSTDOCFLAGS=\"-Dwarnings\"" } else { "" } }} cargo doc --no-deps
     cargo fmt --check --all
     just test
-
 doc *FLAGS:
     cargo doc -p rustorio -p rustorio-engine -p rustorio-derive --no-deps {{ FLAGS }}
 

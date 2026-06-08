@@ -350,6 +350,8 @@ where
 
 /// Contains a fixed (compile-time known) amount of a resource.
 /// A [`Bundle`] can be used to build structures or as input for recipes.
+///
+/// See the [`resources`](crate::resources) module docs for info on the relationship between [`Bundle`] and [`Resource`].
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use = "This bundle is being dropped without being used. If this is intentional, use the `let _ = bundle;` pattern to silence this warning."]
 pub struct Bundle<R, const AMOUNT: u32>
