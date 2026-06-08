@@ -74,6 +74,32 @@ macro_rules! resource_type {
 
 pub use resource_type;
 
+/// Defines a [`ResourceType`] and includes generated recipe relationship documentation.
+///
+/// Crates using this macro should call `rustorio_engine::resource_docs::generate()` from their
+/// `build.rs` with the `resource-docgen` feature enabled.
+///
+/// This has not been tested on mods other than the base `rustorio` mod, so consider it experimental.
+#[macro_export]
+macro_rules! documented_resource_type {
+
+    ($(#[$outer:meta])*
+    $name:ident) => {
+        $crate::resource_type!(
+            $(#[$outer])*
+            #[doc = include_str!(concat!(
+                env!("OUT_DIR"),
+                "/resource_docs/",
+                stringify!($name),
+                ".md",
+            ))]
+            $name
+        );
+    };
+}
+
+pub use documented_resource_type;
+
 /// Error returned when there are insufficient resources in a [`Resource`] to fulfill a request.
 #[derive(Debug, Clone)]
 pub struct InsufficientResourceError<Resource>

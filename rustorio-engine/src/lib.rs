@@ -12,6 +12,8 @@ pub mod gamemodes;
 pub mod machine;
 pub mod recipe;
 pub mod research;
+#[cfg(feature = "resource-docgen")]
+pub mod resource_docs;
 pub mod resources;
 pub mod tick;
 

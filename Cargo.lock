@@ -4688,8 +4688,10 @@ dependencies = [
 name = "rustorio-engine"
 version = "0.1.2"
 dependencies = [
+ "quote",
  "rustorio-common",
  "rustorio-derive",
+ "syn 2.0.117",
 ]
 
 [[package]]

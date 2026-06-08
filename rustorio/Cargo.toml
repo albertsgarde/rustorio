@@ -18,5 +18,8 @@ workspace = true
 rustorio-engine = { path = "../rustorio-engine", version = "0.1.2" }
 rustorio-cli = { path = "../rustorio-cli", version = "0.1.2" }
 
+[build-dependencies]
+rustorio-engine = { path = "../rustorio-engine", version = "0.1.2", features = ["resource-docgen"] }
+
 [[bin]]
 name = "rustorio"

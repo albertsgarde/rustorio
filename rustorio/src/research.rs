@@ -7,9 +7,8 @@
 //! This module defines the technologies available in Rustorio.
 
 use rustorio_engine::{
-    Sealed,
+    Sealed, documented_resource_type,
     research::{ResearchPoint, Technology, TechnologyEx, technology_doc},
-    resource_type,
 };
 
 use crate::{
@@ -17,7 +16,7 @@ use crate::{
     recipes::{PointRecipe, SteelSmelting},
 };
 
-resource_type!(
+documented_resource_type!(
     /// The basic science pack used for researching technologies in [`Lab`](crate::buildings::Lab)s.
     ///
     /// Crafted from [this](crate::recipes::RedScienceRecipe) recipe.

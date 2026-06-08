@@ -19,5 +19,5 @@ proc-macro = true
 [dependencies]
 proc-macro-crate = "3.4.0"
 proc-macro2 = "1.0.103"
-quote = "1.0.42"
-syn = { version = "2.0.111", features = ["full"] }
+quote.workspace = true
+syn.workspace = true
