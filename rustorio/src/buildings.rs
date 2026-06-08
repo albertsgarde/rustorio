@@ -30,6 +30,44 @@ use crate::{
 /// Outputs can be extracted using [`outputs`](Assembler::outputs), for example `assembler.outputs(&tick).0.bundle::<1>()`.
 /// If you want to change the recipe, use [`change_recipe`](Assembler::change_recipe), but ensure the assembler is empty first.
 ///
+/// # Example
+/// In this example, we build an assembler to produce electronic circuits.
+/// The example assumes we have some iron and copper wire from elsewhere,
+/// and uses that to first build an assembler and then produce an electronic circuit with it.
+///
+/// ```rust
+/// # use rustorio::{
+/// #     Bundle, Tick,
+/// #     buildings::Assembler,
+/// #     recipes::ElectronicCircuitRecipe,
+/// #     resources::{CopperWire, ElectronicCircuit, Iron},
+/// # };
+/// #
+/// # use rustorio_engine::{resources, tick};
+/// #
+/// # let token = resources::creation_token();
+/// # let mut tick = tick::tick(&token, 1_000_000);
+/// # let mut iron = resources::resource::<Iron>(&token, 100);
+/// # let mut copper_wire = resources::resource::<CopperWire>(&token, 100);
+/// #
+/// // Use some of our iron and copper wire to build an assembler for electronic circuits.
+/// let mut assembler = Assembler::build(
+///     &tick,
+///     ElectronicCircuitRecipe,
+///     copper_wire.bundle().expect("We assume we have enough"),
+///     iron.bundle().expect("We assume we have enough"),
+/// );
+///
+/// // Put the rest of the resources in the assembler's input buffers.
+/// assembler.inputs(&tick).0 += iron;
+/// assembler.inputs(&tick).1 += copper_wire;
+/// // Wait until the assembler has produced a circuit.
+/// tick.advance_until(|tick| assembler.outputs(tick).0 >= 1);
+///
+/// // Take the circuit out of the assembler's output buffer.
+/// let circuit = assembler.outputs(&tick).0.bundle::<1>().unwrap();
+/// ```
+///
 /// See the [implementors](AssemblerRecipe#implementors) of the [`AssemblerRecipe`] trait for recipes that can be used in the assembler.
 #[derive(Debug)]
 pub struct Assembler<R: AssemblerRecipe>(Machine<R>);
