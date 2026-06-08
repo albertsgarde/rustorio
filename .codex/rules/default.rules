@@ -1,0 +1,13 @@
+prefix_rule(
+    pattern = ["jj", "st"],
+    decision = "allow",
+    justification = "Allow checking Jujutsu status outside the sandbox for this repo.",
+    match = [
+        "jj st",
+    ],
+    not_match = [
+        "jj status",
+        "jj diff",
+        "jj commit",
+    ],
+)

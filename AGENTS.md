@@ -23,3 +23,5 @@ If it is in `rustorio-engine` and is not exported in `rustorio`, its documentati
 # Documentation
 Examples in documentation should be valid doc-tests, but should hide any code that is not relevant to the example itself, e.g. most `use` statements.
 I recommend using the `TokenOfCreation` to create the required resources in a hidden part of the example and then use them in the visible part.
+You should not encase the example in a function in order to get e.g. a `Tick`.
+If you can't do it in any other way, ask me, but usually there should be some way of doing it using a `TokenOfCreation`.
