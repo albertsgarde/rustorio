@@ -7,7 +7,6 @@ members = [
     "rustorio-cli",
     "rustorio-common",
 ]
-exclude = []
 resolver = "3"
 
 [workspace.package]
@@ -17,15 +16,16 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/albertsgarde/rustorio"
 
 [workspace.dependencies]
-anyhow = { version = "1.0.100" }
-clap = { version = "4.5.53", features = ["derive"] }
+anyhow = { version = "1.0.102" }
+clap = { version = "4.6.1", features = ["derive"] }
 dialoguer = { version = "0.12.0" }
-reqwest = { version = "0.13.2", features = ["blocking", "json"] }
-thiserror = { version = "2.0.17" }
+reqwest = { version = "0.13.4", features = ["blocking", "json"] }
+thiserror = { version = "2.0.18" }
 serde = { version = "1.0.228", features = ["derive"] }
-toml = { version = "0.9.11" }
-log = { version = "0.4.29" }
-serde_json = { version = "1.0.149" }
+toml = { version = "1.1.2" }
+log = { version = "0.4.31" }
+serde_json = { version = "1.0.150" }
+chrono = { version = "0.4.44" }
 
 [workspace.lints.clippy]
 missing_const_for_fn = "warn"

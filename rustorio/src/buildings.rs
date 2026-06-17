@@ -3,6 +3,8 @@
 //! To use a building, you must first build it which takes a number of resources.
 //! Then you can add inputs to it using `inputs`.
 //! Once it has sufficient inputs, it will start producing outputs, which can be extracted using `outputs`.
+//! Input and output buffers are tuples of [`Resource`](crate::Resource) values in the same order as the recipe docs.
+//! For example, a recipe with iron and copper-wire inputs exposes those buffers as `.0` and `.1`.
 //!
 //! When created, a building is set to a specific [`Recipe`](crate::recipes), which defines the inputs and outputs.
 //! This can be changed using the `change_recipe` method, but only if the building is empty (no inputs or outputs).
@@ -27,6 +29,44 @@ use crate::{
 /// The assembler will automatically process the inputs over time, which can be advanced using the [`Tick`].
 /// Outputs can be extracted using [`outputs`](Assembler::outputs), for example `assembler.outputs(&tick).0.bundle::<1>()`.
 /// If you want to change the recipe, use [`change_recipe`](Assembler::change_recipe), but ensure the assembler is empty first.
+///
+/// # Example
+/// In this example, we build an assembler to produce electronic circuits.
+/// The example assumes we have some iron and copper wire from elsewhere,
+/// and uses that to first build an assembler and then produce an electronic circuit with it.
+///
+/// ```rust
+/// # use rustorio::{
+/// #     Bundle, Tick,
+/// #     buildings::Assembler,
+/// #     recipes::ElectronicCircuitRecipe,
+/// #     resources::{CopperWire, ElectronicCircuit, Iron},
+/// # };
+/// #
+/// # use rustorio_engine::{resources, tick};
+/// #
+/// # let token = resources::creation_token();
+/// # let mut tick = tick::tick(&token, 1_000_000);
+/// # let mut iron = resources::resource::<Iron>(&token, 100);
+/// # let mut copper_wire = resources::resource::<CopperWire>(&token, 100);
+/// #
+/// // Use some of our iron and copper wire to build an assembler for electronic circuits.
+/// let mut assembler = Assembler::build(
+///     &tick,
+///     ElectronicCircuitRecipe,
+///     copper_wire.bundle().expect("We assume we have enough"),
+///     iron.bundle().expect("We assume we have enough"),
+/// );
+///
+/// // Put the rest of the resources in the assembler's input buffers.
+/// assembler.inputs(&tick).0 += iron;
+/// assembler.inputs(&tick).1 += copper_wire;
+/// // Wait until the assembler has produced a circuit.
+/// tick.advance_until(|tick| assembler.outputs(tick).0 >= 1);
+///
+/// // Take the circuit out of the assembler's output buffer.
+/// let circuit = assembler.outputs(&tick).0.bundle::<1>().unwrap();
+/// ```
 ///
 /// See the [implementors](AssemblerRecipe#implementors) of the [`AssemblerRecipe`] trait for recipes that can be used in the assembler.
 #[derive(Debug)]
@@ -86,6 +126,29 @@ impl<R: AssemblerRecipe> Assembler<R> {
 /// Outputs can be extracted using [`outputs`](Furnace::outputs), for example `furnace.outputs(&tick).0.bundle::<1>()`.
 /// If you want to change the recipe, use [`change_recipe`](Furnace::change_recipe), but ensure the furnace is empty first.
 ///
+/// # Example
+///
+/// ```rust
+/// # use rustorio::{
+/// #     Bundle, Tick,
+/// #     buildings::Furnace,
+/// #     recipes::CopperSmelting,
+/// #     resources::{Copper, CopperOre, Iron},
+/// # };
+/// # fn example(mut tick: Tick) -> Bundle<Copper, 4> {
+/// # let token = rustorio_engine::resources::creation_token();
+/// # let iron = rustorio_engine::bundle::<Iron, 10>(token);
+/// # let copper_ore = rustorio_engine::bundle::<CopperOre, 8>(token);
+/// let mut furnace = Furnace::build(&tick, CopperSmelting, iron);
+///
+/// furnace.inputs(&tick).0 += copper_ore;
+/// tick.advance_until(|tick| furnace.outputs(tick).0 >= 4);
+///
+/// let copper = furnace.outputs(&tick).0.bundle::<4>().unwrap();
+/// # copper
+/// # }
+/// ```
+///
 /// See the [implementors](FurnaceRecipe#implementors) of the [`FurnaceRecipe`] trait for recipes that can be used in the furnace.
 #[derive(Debug)]
 pub struct Furnace<R: FurnaceRecipe>(Machine<R>);
@@ -134,6 +197,36 @@ impl<R: FurnaceRecipe> Furnace<R> {
 /// Performs research to unlock new technologies.
 /// Set it to produce research points for a specific technology either when [`build`](Lab::build)ing it,
 /// or using [`change_technology`](Lab::change_technology).
+///
+/// ```rust
+/// # use rustorio::{
+/// #     Bundle, Tick, Technology,
+/// #     buildings::Lab,
+/// #     research::{PointsTechnology, RedScience, SteelTechnology},
+/// #     resources::{Copper, Iron},
+/// # };
+/// # use rustorio_engine::{tick, resources, research::TechnologyEx};
+/// #
+/// # let token = resources::creation_token();
+/// # let iron: Bundle<Iron, 20> = rustorio_engine::bundle(token);
+/// # let copper: Bundle<Copper, 15> = rustorio_engine::bundle(token);
+/// # let red_science: Bundle<RedScience, 20> = rustorio_engine::bundle(token);
+/// # let mut tick = tick::tick(&token, 1_000_000);
+/// # let steel_technology = SteelTechnology::instance(&token);
+///
+/// let mut lab = Lab::build(&tick, &steel_technology, iron, copper);
+///
+/// lab.inputs(&tick).0 += red_science; // Add 20 red science to the lab's input buffer.
+/// tick.advance_until(|tick| {
+///     lab.outputs(tick).0 >= SteelTechnology::REQUIRED_RESEARCH_POINTS
+/// });
+///
+///
+/// let research_points = lab.outputs(&tick).0.bundle().expect("Given the above advance_until, the lab should contain enough research points");
+/// let (_steel_smelting, points_research) = steel_technology.research(research_points);
+///
+/// let lab = lab.change_technology(&points_research).expect("We added exactly the required amount of science packs to the lab, so it should be empty");
+/// ```
 #[derive(Debug)]
 pub struct Lab<T: Technology>(Machine<TechRecipe<T>>)
 where

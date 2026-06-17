@@ -66,8 +66,11 @@ cheating vectors using only the Rust compiler. So I'd love to hear about any way
 
 ## Help
 Documentation for the Rustorio library can be found
-[here](https://docs.rs/rustorio/latest/rustorio/). A good place to start
-is to build a
+[here](https://docs.rs/rustorio/latest/rustorio/). 
+The most important concept to get is that of a [resources](https://docs.rs/rustorio/latest/rustorio/resources/).
+It is one of the most unique things about this game, so see the documentation for an
+explanation of the the difference between `Resource<T>` and `Bundle<T, N>`.
+A good place to start is to build a
 [furnace](https://docs.rs/rustorio/latest/rustorio/buildings/struct.Furnace.html)
 and start
 [mining](https://docs.rs/rustorio/latest/rustorio/territory/struct.Territory.html#method.hand_mine) and

@@ -2,6 +2,26 @@
 //! Resources are held in either [`Resource`](crate::Resource) or [`Bundle`](crate::Bundle) objects.
 //! [`Bundle`](crate::Bundle) objects are used to hold a fixed amount of a resource, while [`Resource`](crate::Resource) objects can hold any amount.
 //!
+//! Machine input and output buffers use [`Resource`](crate::Resource) because their amounts change over time.
+//! Building costs, recipe inputs, research costs, and victory conditions use [`Bundle`](crate::Bundle) because they need exact amounts.
+//!
+//! When you have a flexible [`Resource`](crate::Resource) and need to pay an exact cost, extract a bundle from it:
+//!
+//! ```rust
+//! # use rustorio::{Bundle, Resource, resources::Iron};
+//! # let token = rustorio_engine::resources::creation_token();
+//! # let mut furnace_output = rustorio_engine::resource::<Iron>(token, 12);
+//! let mut iron: Resource<Iron> = Resource::new_empty();
+//! iron += furnace_output.empty();
+//!
+//! let ten_iron: Bundle<Iron, 10> = iron.bundle().unwrap();
+//! # assert_eq!(iron.amount(), 2);
+//! ```
+//!
+//! The `.bundle::<N>()` method removes `N` items from the resource buffer and
+//! returns a [`Bundle<T, N>`](crate::Bundle). If Rust can infer `N` from the
+//! function you pass it to, you can usually write `.bundle().unwrap()`.
+//!
 //! This module defines the core resources used in Rustorio.
 
 use rustorio_engine::resource_type;

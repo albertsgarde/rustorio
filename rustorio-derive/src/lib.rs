@@ -15,7 +15,7 @@ impl ToTokens for Crate {
         let found_crate =
             proc_macro_crate::crate_name("rustorio-engine").expect("Failed to get crate name");
         match found_crate {
-            FoundCrate::Itself => quote! {crate}.to_tokens(tokens),
+            FoundCrate::Itself => quote! {::rustorio_engine}.to_tokens(tokens),
             FoundCrate::Name(name) => {
                 let crate_ident = Ident::new(&name, Span::call_site());
                 quote! {::#crate_ident}.to_tokens(tokens);
@@ -311,6 +311,11 @@ impl TechnologyDetails {
                 const POINT_RECIPE_TIME: u64 = #point_recipe_time;
                 const REQUIRED_RESEARCH_POINTS_EX: u32 = #research_point_cost;
                 type InputBundle = #input_bundle_type;
+
+                fn instance(token: &#Crate::resources::TokenOfCreation) -> Self {
+                    let _ = token;
+                    Self
+                }
             }
         }
     }
