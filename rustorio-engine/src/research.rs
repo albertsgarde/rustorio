@@ -73,7 +73,7 @@ where
     type OutputBundle = Bundle<ResearchPoint<T>, 1>;
 
     type InputResources = <T::InputBundle as MultiBundle>::AsResources;
-    type OutputResources = (Resource<ResearchPoint<T>>,);
+    type OutputResources = Resource<ResearchPoint<T>>;
 }
 
 /// Creates a new `TechRecipe<T>` for use in a `Machine`.
